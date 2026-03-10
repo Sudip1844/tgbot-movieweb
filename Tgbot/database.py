@@ -1,0 +1,621 @@
+# MovieZoneBot/database.py
+
+import json
+import os
+import logging
+import hashlib
+import time
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional, Any
+
+# লগিং সেটআপ
+logger = logging.getLogger(__name__)
+
+# Data directory
+DATA_DIR = "data"
+
+# Database file paths
+USERS_FILE = os.path.join(DATA_DIR, "users.json")
+ADMINS_FILE = os.path.join(DATA_DIR, "admins.json")
+MOVIES_FILE = os.path.join(DATA_DIR, "movies.json")
+CHANNELS_FILE = os.path.join(DATA_DIR, "channels.json")
+REQUESTS_FILE = os.path.join(DATA_DIR, "requests.json")
+TOKENS_FILE = os.path.join(DATA_DIR, "tokens.json")
+MONTHLY_STATS_FILE = os.path.join(DATA_DIR, "monthly_stats.json")
+
+def initialize_database():
+    """Initialize the database by creating necessary directories and files."""
+    if not os.path.exists(DATA_DIR):
+        os.makedirs(DATA_DIR)
+    
+    # Initialize files if they don't exist
+    files_to_init = {
+        USERS_FILE: {},
+        ADMINS_FILE: {},
+        MOVIES_FILE: {"next_id": 1, "movies": {}},
+        CHANNELS_FILE: {},
+        REQUESTS_FILE: {"next_id": 1, "requests": {}},
+        TOKENS_FILE: {},
+        MONTHLY_STATS_FILE: {"monthly_data": {}, "download_tracking": {}}
+    }
+    
+    for file_path, default_data in files_to_init.items():
+        if not os.path.exists(file_path):
+            with open(file_path, 'w', encoding='utf-8') as f:
+                json.dump(default_data, f, indent=2, ensure_ascii=False)
+            logger.info(f"Initialized {file_path}")
+
+def load_json(file_path: str) -> Dict:
+    """Load data from a JSON file."""
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        logger.warning(f"File {file_path} not found, returning empty dict")
+        return {}
+    except json.JSONDecodeError as e:
+        logger.error(f"JSON decode error in {file_path}: {e}")
+        return {}
+
+def save_json(file_path: str, data: Dict):
+    """Save data to a JSON file."""
+    try:
+        with open(file_path, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        logger.error(f"Error saving to {file_path}: {e}")
+
+# --- User Management Functions ---
+
+def user_exists(user_id: int) -> bool:
+    """Check if a user exists in the database."""
+    users = load_json(USERS_FILE)
+    return str(user_id) in users
+
+def add_user_if_not_exists(user_id: int, first_name: str, username: Optional[str] = None) -> bool:
+    """Add a user to the database if they don't exist."""
+    users = load_json(USERS_FILE)
+    user_id_str = str(user_id)
+    
+    if user_id_str not in users:
+        users[user_id_str] = {
+            "user_id": user_id,
+            "first_name": first_name,
+            "username": username,
+            "joined_at": datetime.now().isoformat(),
+            "is_active": True
+        }
+        save_json(USERS_FILE, users)
+        logger.info(f"Added new user: {user_id} ({first_name})")
+        return True
+    else:
+        # Update user info if changed
+        user = users[user_id_str]
+        updated = False
+        if user.get("first_name") != first_name:
+            user["first_name"] = first_name
+            updated = True
+        if user.get("username") != username:
+            user["username"] = username
+            updated = True
+        if updated:
+            save_json(USERS_FILE, users)
+        return False
+
+def get_user_role(user_id: int) -> str:
+    """Get the role of a user (owner/admin/user)."""
+    from config import OWNER_ID
+    
+    if user_id == OWNER_ID:
+        return 'owner'
+    
+    admins = load_json(ADMINS_FILE)
+    if str(user_id) in admins:
+        return 'admin'
+    
+    return 'user'
+
+# --- Admin Management Functions ---
+
+def add_admin(admin_id: int, short_name: str, first_name: str, username: Optional[str] = None) -> bool:
+    """Add a new admin to the database."""
+    admins = load_json(ADMINS_FILE)
+    admin_id_str = str(admin_id)
+    
+    if admin_id_str in admins:
+        logger.warning(f"Admin {admin_id} already exists")
+        return False
+    
+    admins[admin_id_str] = {
+        "user_id": admin_id,
+        "short_name": short_name,
+        "first_name": first_name,
+        "username": username,
+        "added_at": datetime.now().isoformat()
+    }
+    save_json(ADMINS_FILE, admins)
+    logger.info(f"Added new admin: {admin_id} ({short_name})")
+    return True
+
+def get_admin_info(admin_id: int) -> Optional[Dict]:
+    """Get admin information by user ID."""
+    admins = load_json(ADMINS_FILE)
+    return admins.get(str(admin_id))
+
+def remove_admin(identifier: str) -> bool:
+    """Remove an admin by user ID or short name."""
+    admins = load_json(ADMINS_FILE)
+    
+    # Try to find by user ID first
+    if identifier in admins:
+        del admins[identifier]
+        save_json(ADMINS_FILE, admins)
+        logger.info(f"Removed admin with ID: {identifier}")
+        return True
+    
+    # Try to find by short name
+    for admin_id, admin_data in admins.items():
+        if admin_data.get("short_name") == identifier:
+            del admins[admin_id]
+            save_json(ADMINS_FILE, admins)
+            logger.info(f"Removed admin with short name: {identifier}")
+            return True
+    
+    logger.warning(f"Admin not found: {identifier}")
+    return False
+
+def get_all_admins() -> List[Dict]:
+    """Get all admins."""
+    admins = load_json(ADMINS_FILE)
+    return list(admins.values())
+
+# --- Movie Management Functions ---
+
+def add_movie(movie_data: Dict) -> int:
+    """Add a new movie to the database."""
+    movies = load_json(MOVIES_FILE)
+    movie_id = movies["next_id"]
+    
+    movie_data["movie_id"] = movie_id
+    movie_data["added_at"] = datetime.now().isoformat()
+    movie_data["download_count"] = 0
+    
+    movies["movies"][str(movie_id)] = movie_data
+    movies["next_id"] += 1
+    
+    save_json(MOVIES_FILE, movies)
+    logger.info(f"Added new movie: {movie_id} - {movie_data.get('title')}")
+    
+    # Track movie addition for monthly stats
+    track_movie_addition(movie_id, movie_data)
+    
+    return movie_id
+
+def get_movie_details(movie_id: int) -> Optional[Dict]:
+    """Get movie details by ID."""
+    movies = load_json(MOVIES_FILE)
+    return movies["movies"].get(str(movie_id))
+
+def search_movies(query: str, limit: int = 10) -> List[Dict]:
+    """Search movies by title."""
+    movies = load_json(MOVIES_FILE)
+    results = []
+    
+    query_lower = query.lower()
+    for movie_data in movies["movies"].values():
+        title = movie_data.get("title", "").lower()
+        if query_lower in title:
+            results.append(movie_data)
+            if len(results) >= limit:
+                break
+    
+    return results
+
+def get_movies_by_first_letter(letter: str, limit: int = 30) -> List[Dict]:
+    """Get movies that start with a specific letter."""
+    movies = load_json(MOVIES_FILE)
+    results = []
+    
+    letter_upper = letter.upper()
+    for movie_data in movies["movies"].values():
+        title = movie_data.get("title", "")
+        if title and title[0].upper() == letter_upper:
+            results.append(movie_data)
+            if len(results) >= limit:
+                break
+    
+    return results
+
+def get_movies_by_category(category: str, limit: int = 10, offset: int = 0) -> List[Dict]:
+    """Get movies by category with pagination support."""
+    movies = load_json(MOVIES_FILE)
+    
+    if category == "All 🌐" or category == "All":
+        # Return all movies for alphabet filtering
+        all_matching = list(movies["movies"].values())
+    else:
+        # First collect all matching movies - exact match only
+        all_matching = []
+        for movie_data in movies["movies"].values():
+            categories = movie_data.get("categories", [])
+            logger.info(f"Checking movie '{movie_data.get('title')}' categories: {categories} against search category: '{category}'")
+            # Check for exact category match only
+            for movie_category in categories:
+                if category == movie_category:
+                    all_matching.append(movie_data)
+                    logger.info(f"Found exact match: '{movie_category}' == '{category}'")
+                    break
+    
+    # Sort by title for consistent ordering
+    all_matching.sort(key=lambda x: x.get('title', '').lower())
+    
+    # Apply offset and limit
+    start_index = offset
+    end_index = offset + limit
+    results = all_matching[start_index:end_index]
+    
+    logger.info(f"Category search for '{category}': found {len(all_matching)} movies, returning {len(results)}")
+    return results
+
+def delete_movie(movie_id: int) -> bool:
+    """Delete a movie from the database."""
+    movies = load_json(MOVIES_FILE)
+    movie_id_str = str(movie_id)
+    
+    if movie_id_str in movies["movies"]:
+        del movies["movies"][movie_id_str]
+        save_json(MOVIES_FILE, movies)
+        logger.info(f"Deleted movie: {movie_id}")
+        return True
+    
+    return False
+
+def increment_download_count(movie_id: int):
+    """Increment the download count for a movie."""
+    movies = load_json(MOVIES_FILE)
+    movie_id_str = str(movie_id)
+    
+    if movie_id_str in movies["movies"]:
+        movies["movies"][movie_id_str]["download_count"] = movies["movies"][movie_id_str].get("download_count", 0) + 1
+        save_json(MOVIES_FILE, movies)
+        
+        # Track download for monthly statistics
+        track_movie_download(movie_id)
+
+# --- Channel Management Functions ---
+
+def add_channel(channel_id: str, channel_name: str, short_name: str) -> bool:
+    """Add a new channel to the database."""
+    channels = load_json(CHANNELS_FILE)
+    
+    if channel_id in channels:
+        logger.warning(f"Channel {channel_id} already exists")
+        return False
+    
+    channels[channel_id] = {
+        "channel_id": channel_id,
+        "channel_name": channel_name,
+        "short_name": short_name,
+        "added_at": datetime.now().isoformat()
+    }
+    save_json(CHANNELS_FILE, channels)
+    logger.info(f"Added new channel: {channel_id} ({short_name})")
+    return True
+
+def remove_channel(identifier: str) -> bool:
+    """Remove a channel by ID or short name."""
+    channels = load_json(CHANNELS_FILE)
+    
+    # Try to find by channel ID first
+    if identifier in channels:
+        del channels[identifier]
+        save_json(CHANNELS_FILE, channels)
+        logger.info(f"Removed channel with ID: {identifier}")
+        return True
+    
+    # Try to find by short name
+    for channel_id, channel_data in channels.items():
+        if channel_data.get("short_name") == identifier:
+            del channels[channel_id]
+            save_json(CHANNELS_FILE, channels)
+            logger.info(f"Removed channel with short name: {identifier}")
+            return True
+    
+    logger.warning(f"Channel not found: {identifier}")
+    return False
+
+def get_channel_info(channel_id: str) -> Optional[Dict]:
+    """Get channel information by channel ID."""
+    channels = load_json(CHANNELS_FILE)
+    return channels.get(channel_id)
+
+def get_all_channels() -> List[Dict]:
+    """Get all channels."""
+    channels = load_json(CHANNELS_FILE)
+    return list(channels.values())
+
+# --- Request Management Functions ---
+
+def add_movie_request(user_id: int, movie_name: str) -> int:
+    """Add a new movie request."""
+    requests = load_json(REQUESTS_FILE)
+    request_id = requests["next_id"]
+    
+    requests["requests"][str(request_id)] = {
+        "request_id": request_id,
+        "user_id": user_id,
+        "movie_name": movie_name,
+        "status": "pending",
+        "requested_at": datetime.now().isoformat()
+    }
+    requests["next_id"] += 1
+    
+    save_json(REQUESTS_FILE, requests)
+    logger.info(f"Added new movie request: {request_id} - {movie_name} by user {user_id}")
+    return request_id
+
+def get_pending_requests(limit: int = 10, offset: int = 0) -> List[Dict]:
+    """Get pending movie requests with pagination support."""
+    requests = load_json(REQUESTS_FILE)
+    users = load_json(USERS_FILE)
+    
+    # Get all pending requests first
+    all_pending = []
+    for request_data in requests["requests"].values():
+        if request_data.get("status") == "pending":
+            # Add user info
+            user_id = request_data["user_id"]
+            user_info = users.get(str(user_id), {})
+            request_data["users"] = user_info
+            all_pending.append(request_data)
+    
+    # Sort by request ID (newest first)
+    all_pending.sort(key=lambda x: x.get("request_id", 0), reverse=True)
+    
+    # Apply offset and limit
+    start_index = offset
+    end_index = offset + limit
+    return all_pending[start_index:end_index]
+
+def get_total_pending_requests_count() -> int:
+    """Get total count of pending movie requests."""
+    requests = load_json(REQUESTS_FILE)
+    count = 0
+    for request_data in requests["requests"].values():
+        if request_data.get("status") == "pending":
+            count += 1
+    return count
+
+def update_request_status(request_id: int, status: str) -> Optional[Dict]:
+    """Update the status of a movie request."""
+    requests = load_json(REQUESTS_FILE)
+    request_id_str = str(request_id)
+    
+    if request_id_str in requests["requests"]:
+        requests["requests"][request_id_str]["status"] = status
+        requests["requests"][request_id_str]["updated_at"] = datetime.now().isoformat()
+        save_json(REQUESTS_FILE, requests)
+        logger.info(f"Updated request {request_id} status to {status}")
+        return requests["requests"][request_id_str]
+    
+    return None
+
+# --- Direct Download System ---
+# Ad token system has been removed - downloads are now direct
+
+
+
+# --- Stats Functions ---
+
+# Removed duplicate function - using the correct one above
+
+def get_movies_by_uploader(admin_id: int, limit: int = 30) -> List[dict]:
+    """Get movies uploaded by specific admin/owner."""
+    movies = load_json(MOVIES_FILE)
+    
+    admin_movies = [
+        movie for movie in movies["movies"].values() 
+        if movie.get('added_by') == admin_id
+    ]
+    
+    # Sort by date added (newest first)
+    admin_movies.sort(key=lambda x: x.get('added_at', ''), reverse=True)
+    return admin_movies[:limit]
+
+# --- Monthly Statistics Functions ---
+
+def track_movie_addition(movie_id: int, movie_data: Dict):
+    """Track movie addition for monthly statistics."""
+    try:
+        stats = load_json(MONTHLY_STATS_FILE)
+        current_date = datetime.now()
+        month_key = current_date.strftime("%Y-%m")  # Format: 2025-08
+        
+        if "monthly_data" not in stats:
+            stats["monthly_data"] = {}
+        
+        if month_key not in stats["monthly_data"]:
+            stats["monthly_data"][month_key] = {}
+        
+        uploader_id = str(movie_data.get('added_by', 0))
+        if uploader_id not in stats["monthly_data"][month_key]:
+            stats["monthly_data"][month_key][uploader_id] = {
+                "movies_uploaded": [],
+                "total_downloads_this_month": 0
+            }
+        
+        # Add movie info to monthly data
+        movie_info = {
+            "movie_id": movie_id,
+            "title": movie_data.get('title', 'Unknown'),
+            "added_at": movie_data.get('added_at'),
+            "categories": movie_data.get('categories', []),
+            "languages": movie_data.get('languages', [])
+        }
+        
+        # Check if movie already exists in this month's data
+        existing_movies = [m["movie_id"] for m in stats["monthly_data"][month_key][uploader_id]["movies_uploaded"]]
+        if movie_id in existing_movies:
+            logger.info(f"Movie {movie_id} already tracked for month {month_key}")
+            return
+
+        stats["monthly_data"][month_key][uploader_id]["movies_uploaded"].append(movie_info)
+        
+        save_json(MONTHLY_STATS_FILE, stats)
+        logger.info(f"Tracked movie addition: {movie_id} for month {month_key}")
+        
+    except Exception as e:
+        logger.error(f"Error tracking movie addition: {e}")
+
+def track_movie_addition_for_date(movie_id: int, movie_data: dict, date_obj):
+    """Track movie addition for a specific date (for migration purposes)."""
+    try:
+        stats = load_json(MONTHLY_STATS_FILE)
+        month_key = date_obj.strftime("%Y-%m")
+        
+        if "monthly_data" not in stats:
+            stats["monthly_data"] = {}
+        
+        if month_key not in stats["monthly_data"]:
+            stats["monthly_data"][month_key] = {}
+        
+        uploader_id = str(movie_data.get('added_by', 0))
+        if uploader_id not in stats["monthly_data"][month_key]:
+            stats["monthly_data"][month_key][uploader_id] = {
+                "movies_uploaded": [],
+                "total_downloads_this_month": 0
+            }
+        
+        # Check if movie already exists in this month's data
+        existing_movies = [m["movie_id"] for m in stats["monthly_data"][month_key][uploader_id]["movies_uploaded"]]
+        if movie_id in existing_movies:
+            logger.info(f"Movie {movie_id} already tracked for month {month_key}")
+            return
+        
+        # Add movie info to monthly data
+        movie_info = {
+            "movie_id": movie_id,
+            "title": movie_data.get('title', 'Unknown'),
+            "added_at": movie_data.get('added_at'),
+            "categories": movie_data.get('categories', []),
+            "languages": movie_data.get('languages', [])
+        }
+        
+        stats["monthly_data"][month_key][uploader_id]["movies_uploaded"].append(movie_info)
+        
+        save_json(MONTHLY_STATS_FILE, stats)
+        logger.info(f"Tracked movie addition: {movie_id} for month {month_key}")
+        
+    except Exception as e:
+        logger.error(f"Error tracking movie addition: {e}")
+
+def track_movie_download(movie_id: int):
+    """Track movie download for monthly statistics."""
+    try:
+        stats = load_json(MONTHLY_STATS_FILE)
+        movies = load_json(MOVIES_FILE)
+        current_date = datetime.now()
+        month_key = current_date.strftime("%Y-%m")
+        
+        if "download_tracking" not in stats:
+            stats["download_tracking"] = {}
+        
+        if month_key not in stats["download_tracking"]:
+            stats["download_tracking"][month_key] = {}
+        
+        # Get movie info to find uploader
+        movie_data = movies["movies"].get(str(movie_id))
+        if not movie_data:
+            return
+        
+        uploader_id = str(movie_data.get('added_by', 0))
+        
+        if uploader_id not in stats["download_tracking"][month_key]:
+            stats["download_tracking"][month_key][uploader_id] = {}
+        
+        if str(movie_id) not in stats["download_tracking"][month_key][uploader_id]:
+            stats["download_tracking"][month_key][uploader_id][str(movie_id)] = 0
+        
+        stats["download_tracking"][month_key][uploader_id][str(movie_id)] += 1
+        
+        save_json(MONTHLY_STATS_FILE, stats)
+        logger.info(f"Tracked download for movie {movie_id} in month {month_key}")
+        
+    except Exception as e:
+        logger.error(f"Error tracking movie download: {e}")
+
+def generate_monthly_report(year: int, month: int) -> str:
+    """Generate monthly report for owner."""
+    try:
+        stats = load_json(MONTHLY_STATS_FILE)
+        movies = load_json(MOVIES_FILE)
+        admins = load_json(ADMINS_FILE)
+        month_key = f"{year}-{month:02d}"
+        
+        report = f"📊 **Monthly Report - {month:02d}/{year}**\n\n"
+        
+        # Get monthly data for uploads
+        monthly_uploads = stats.get("monthly_data", {}).get(month_key, {})
+        
+        # Get download tracking for this month
+        monthly_downloads = stats.get("download_tracking", {}).get(month_key, {})
+        
+        if not monthly_uploads and not monthly_downloads:
+            return f"📊 **Monthly Report - {month:02d}/{year}**\n\nNo activity recorded for this month."
+        
+        # Process each uploader (admin/owner)
+        for uploader_id, upload_data in monthly_uploads.items():
+            user_id = int(uploader_id)
+            
+            # Get user role and info
+            if user_id == 5379553841:  # Owner ID from config
+                role = "Owner"
+                name = "Owner"
+            else:
+                admin_info = admins.get(uploader_id, {})
+                role = "Admin"
+                name = admin_info.get('first_name', 'Unknown Admin')
+                added_date = admin_info.get('added_at', 'Unknown')
+            
+            report += f"👤 **{name} ({role})**\n"
+            
+            if role == "Admin":
+                report += f"📅 Admin Added: {added_date[:10] if added_date != 'Unknown' else 'Unknown'}\n"
+            
+            # Movies uploaded this month
+            movies_uploaded = upload_data.get("movies_uploaded", [])
+            report += f"📤 Movies Uploaded This Month: {len(movies_uploaded)}\n"
+            
+            if movies_uploaded:
+                movie_titles = [movie["title"] for movie in movies_uploaded]
+                report += f"🎬 Uploaded Movies: {', '.join(movie_titles)}\n"
+            
+            # Calculate total downloads for all movies by this uploader in this month
+            total_downloads = 0
+            uploader_downloads = monthly_downloads.get(uploader_id, {})
+            
+            for movie_id_str, download_count in uploader_downloads.items():
+                total_downloads += download_count
+            
+            report += f"📥 Total Downloads This Month: {total_downloads}\n"
+            
+            # Get total movies ever uploaded by this user
+            all_movies_by_user = get_movies_by_uploader(user_id, limit=1000)
+            report += f"📊 Total Movies Ever Uploaded: {len(all_movies_by_user)}\n"
+            
+            report += "\n" + "─" * 40 + "\n\n"
+        
+        return report
+        
+    except Exception as e:
+        logger.error(f"Error generating monthly report: {e}")
+        return f"❌ Error generating monthly report: {str(e)}"
+
+def get_previous_month_date():
+    """Get year and month for previous month."""
+    current_date = datetime.now()
+    if current_date.month == 1:
+        return current_date.year - 1, 12
+    else:
+        return current_date.year, current_date.month - 1
+
