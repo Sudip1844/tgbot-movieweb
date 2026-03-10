@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MovieZone Admin</title>
+</head>
+<body>
+    <h1>MovieZone Admin Panel</h1>
+    
+    <div id="login">
+        <h2>Login</h2>
+        <input type="text" id="admin_id" placeholder="Admin ID" value="sbiswas1844">
+        <input type="password" id="password" placeholder="Password" value="save@184455">
+        <button onclick="login()">Login</button>
+    </div>
+    
+    <div id="add-movie" style="display:none;">
+        <h2>Add Movie</h2>
+        <input type="text" id="movie_name" placeholder="Movie Name">
+        <input type="text" id="original_link" placeholder="Original Link">
+        <button onclick="addMovie()">Add Movie</button>
+    </div>
+    
+    <script>
+        let token = null;
+        
+        async function login() {
+            const response = await fetch('/api/admin/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    admin_id: document.getElementById('admin_id').value,
+                    password: document.getElementById('password').value
+                })
+            });
+            const data = await response.json();
+            if (data.status === 'success') {
+                document.getElementById('login').style.display = 'none';
+                document.getElementById('add-movie').style.display = 'block';
+                alert('Login successful!');
+            } else {
+                alert('Login failed!');
+            }
+        }
+        
+        async function addMovie() {
+            const response = await fetch('/api/admin/movies', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    admin_id: document.getElementById('admin_id').value,
+                    password: document.getElementById('password').value,
+                    movie_name: document.getElementById('movie_name').value,
+                    original_link: document.getElementById('original_link').value
+                })
+            });
+            const data = await response.json();
+            alert(data.message);
+        }
+    </script>
+</body>
+</html>
