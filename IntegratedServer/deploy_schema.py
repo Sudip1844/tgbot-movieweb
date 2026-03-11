@@ -36,7 +36,7 @@ print("✅ Service Role Key: •••••••••••••••••
 
 # Step 3: Read SQL Schema
 print("\n📖 Reading SQL schema...")
-sql_file = os.path.join(os.path.dirname(__file__), '..', 'Movieweb', 'SUPABASE_SQL_SCHEMA.sql')
+sql_file = os.path.join(os.path.dirname(__file__), 'SUPABASE_SQL_SCHEMA.sql')
 
 if not os.path.exists(sql_file):
     print(f"❌ SQL file not found: {sql_file}")
