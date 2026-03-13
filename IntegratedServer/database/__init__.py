@@ -1,28 +1,4 @@
 # IntegratedServer/database/__init__.py
-from database.connection import engine, SessionLocal, get_db_session, init_db, get_db
-from database.models import (
-    Base,
-    MovieLink,
-    QualityMovieLink,
-    QualityEpisode,
-    QualityZip,
-    ApiToken,
-    AdminSetting,
-    AdViewSession
-)
+# Database package - exports Supabase client
 
-__all__ = [
-    'engine',
-    'SessionLocal',
-    'get_db_session',
-    'init_db',
-    'get_db',
-    'Base',
-    'MovieLink',
-    'QualityMovieLink',
-    'QualityEpisode',
-    'QualityZip',
-    'ApiToken',
-    'AdminSetting',
-    'AdViewSession',
-]
+from database.supabase_client import supabase, SupabaseClient
