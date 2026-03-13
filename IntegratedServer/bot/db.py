@@ -511,3 +511,93 @@ def reject_movie(movie_id: int) -> bool:
         return True
     except:
         return False
+
+
+def get_previous_month_date():
+    """Get year and month for previous month."""
+    current_date = datetime.now()
+    if current_date.month == 1:
+        return current_date.year - 1, 12
+    else:
+        return current_date.year, current_date.month - 1
+
+
+def generate_monthly_report(year: int, month: int) -> str:
+    """Generate monthly report for owner (Supabase-backed version)."""
+    try:
+        from bot.config import OWNER_ID
+        month_key = f"{year}-{month:02d}"
+
+        report = f"Monthly Report - {month:02d}/{year}\n\n"
+
+        # Get monthly stats
+        stats_row = get_monthly_stats(month_key)
+
+        # Get all movies added this month
+        # Use date range filtering
+        month_start = f"{year}-{month:02d}-01"
+        if month == 12:
+            month_end = f"{year + 1}-01-01"
+        else:
+            month_end = f"{year}-{month + 1:02d}-01"
+
+        all_movies = supabase.select(
+            'movies', '*',
+            {'created_at': f'gte.{month_start}T00:00:00'},
+            order='created_at.desc'
+        )
+        # Filter to this month only
+        month_movies = [m for m in all_movies if m.get('created_at', '') < month_end + 'T00:00:00']
+
+        if not month_movies and not stats_row:
+            return f"Monthly Report - {month:02d}/{year}\n\nNo activity recorded for this month."
+
+        # Group by uploader
+        uploaders = {}
+        for movie in month_movies:
+            uploader_id = movie.get('added_by', 'unknown')
+            if uploader_id not in uploaders:
+                uploaders[uploader_id] = []
+            uploaders[uploader_id].append(movie)
+
+        for uploader_id, movies in uploaders.items():
+            try:
+                uid = int(uploader_id)
+            except (ValueError, TypeError):
+                uid = 0
+
+            if uid == OWNER_ID:
+                name = "Owner"
+                role = "Owner"
+            else:
+                admin_info = get_admin_info(uid)
+                name = admin_info.get('first_name', f'Admin-{uploader_id}') if admin_info else f'User-{uploader_id}'
+                role = "Admin"
+
+            report += f">> {name} ({role})\n"
+            report += f"  Movies Uploaded This Month: {len(movies)}\n"
+
+            movie_titles = [m.get('title', 'Unknown') for m in movies]
+            report += f"  Uploaded Movies: {', '.join(movie_titles)}\n"
+
+            # Total downloads for these movies
+            total_downloads = sum(m.get('downloads', 0) for m in movies)
+            report += f"  Total Downloads This Month: {total_downloads}\n"
+
+            # Total movies ever by this uploader
+            all_by_user = get_movies_by_uploader(uid, limit=1000)
+            report += f"  Total Movies Ever Uploaded: {len(all_by_user)}\n"
+            report += "\n" + "-" * 40 + "\n\n"
+
+        # Summary stats
+        if stats_row:
+            report += f"Summary:\n"
+            report += f"  Total Movies Added: {stats_row.get('movies_added', 0)}\n"
+            report += f"  Total Downloads: {stats_row.get('total_downloads', 0)}\n"
+            report += f"  Total Views: {stats_row.get('total_views', 0)}\n"
+
+        return report
+
+    except Exception as e:
+        logger.error(f"Error generating monthly report: {e}")
+        return f"Error generating monthly report: {str(e)}"

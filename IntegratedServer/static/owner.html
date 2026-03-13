@@ -4,512 +4,887 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MovieZone Owner Panel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-secondary: #111827;
+            --bg-card: rgba(17, 24, 39, 0.8);
+            --bg-input: rgba(30, 41, 59, 0.8);
+            --border: rgba(99, 102, 241, 0.2);
+            --border-focus: rgba(99, 102, 241, 0.6);
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --accent: #6366f1;
+            --accent-hover: #818cf8;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --cyan: #06b6d4;
+        }
         body {
-            font-family: 'Inter', system-ui, sans-serif;
-            background: linear-gradient(135deg, #0a0a1a, #1a1a3e, #0d0d2b);
-            color: #e0e0e0; min-height: 100vh;
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            background-image:
+                radial-gradient(ellipse at 20% 50%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(6, 182, 212, 0.05) 0%, transparent 50%);
         }
-        .header {
-            background: rgba(0,0,0,0.3); padding: 1rem 2rem;
-            display: flex; justify-content: space-between; align-items: center;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-        .header h1 { font-size: 1.3rem; color: #ffd700; }
-        .logout-btn {
-            background: rgba(255,0,0,0.2); color: #ff6b6b; border: 1px solid rgba(255,0,0,0.3);
-            padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.85rem;
-        }
-        /* Login Form */
-        .login-container {
+
+        /* Login Screen */
+        #loginScreen {
             display: flex; align-items: center; justify-content: center;
-            min-height: 100vh; padding: 2rem;
+            min-height: 100vh; padding: 20px;
         }
-        .login-box {
-            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 20px; padding: 3rem; width: 400px; max-width: 95%;
-            backdrop-filter: blur(10px);
+        .login-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 48px 40px;
+            width: 100%; max-width: 420px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.4);
         }
-        .login-box h2 { text-align: center; margin-bottom: 2rem; color: #ffd700; }
-        .form-group { margin-bottom: 1.2rem; }
-        .form-group label { display: block; margin-bottom: 0.5rem; color: #8899aa; font-size: 0.9rem; }
-        .form-group input, .form-group select, .form-group textarea {
-            width: 100%; padding: 12px 16px; border-radius: 10px;
-            border: 1px solid rgba(255,255,255,0.15);
-            background: rgba(255,255,255,0.08); color: #fff;
-            font-size: 0.95rem; font-family: inherit;
+        .login-card h2 {
+            text-align: center; font-size: 1.6rem; font-weight: 700;
+            background: linear-gradient(135deg, #f59e0b, #ef4444);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            margin-bottom: 32px;
         }
-        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
-            outline: none; border-color: #00d2ff;
-        }
-        .submit-btn {
-            width: 100%; padding: 14px; border-radius: 10px; border: none;
-            background: linear-gradient(135deg, #ffd700, #ff8c00);
-            color: #000; font-weight: 700; font-size: 1rem; cursor: pointer;
-            transition: all 0.3s;
-        }
-        .submit-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(255,215,0,0.3); }
+
         /* Dashboard */
-        .dashboard { display: none; }
+        #dashboard { display: none; }
+        .topbar {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px 24px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; z-index: 50;
+        }
+        .topbar h1 {
+            font-size: 1.2rem; font-weight: 700;
+            background: linear-gradient(135deg, var(--accent), var(--cyan));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .topbar-right { display: flex; align-items: center; gap: 12px; }
+        .role-badge {
+            background: linear-gradient(135deg, #f59e0b, #ef4444);
+            color: #000; padding: 4px 12px; border-radius: 20px;
+            font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+        }
+
+        .main-content { padding: 24px; max-width: 1200px; margin: 0 auto; }
+
+        /* Tabs */
         .tabs {
-            display: flex; gap: 0; border-bottom: 1px solid rgba(255,255,255,0.1);
-            background: rgba(0,0,0,0.2); overflow-x: auto;
+            display: flex; gap: 4px; background: var(--bg-secondary);
+            border-radius: 14px; padding: 4px; margin-bottom: 24px;
+            overflow-x: auto; border: 1px solid var(--border);
         }
-        .tab {
-            padding: 14px 24px; cursor: pointer; color: #8899aa;
-            border-bottom: 3px solid transparent; transition: all 0.3s;
-            white-space: nowrap; font-size: 0.9rem;
+        .tab-btn {
+            padding: 10px 16px; border: none; border-radius: 10px;
+            background: transparent; color: var(--text-secondary);
+            cursor: pointer; font-size: 0.85rem; font-weight: 500;
+            white-space: nowrap; transition: all 0.2s;
+            font-family: inherit;
         }
-        .tab.active { color: #ffd700; border-bottom-color: #ffd700; background: rgba(255,215,0,0.05); }
-        .tab:hover { color: #ffd700; }
-        .tab-content { padding: 2rem; display: none; }
-        .tab-content.active { display: block; }
-        /* Cards */
+        .tab-btn:hover { color: var(--text-primary); background: rgba(99,102,241,0.1); }
+        .tab-btn.active {
+            background: var(--accent); color: #fff;
+            box-shadow: 0 4px 15px rgba(99,102,241,0.4);
+        }
+        .tab-panel { display: none; animation: fadeIn 0.3s ease; }
+        .tab-panel.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Form Elements */
+        label { display: block; font-size: 0.85rem; font-weight: 500; color: var(--text-secondary); margin-bottom: 6px; }
+        input, select, textarea {
+            width: 100%; padding: 12px 16px; border-radius: 10px;
+            border: 1px solid var(--border); background: var(--bg-input);
+            color: var(--text-primary); font-size: 0.9rem;
+            font-family: inherit; transition: border-color 0.2s;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none; border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+        }
+        .form-group { margin-bottom: 16px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+        /* Buttons */
+        .btn {
+            padding: 12px 24px; border: none; border-radius: 10px;
+            font-size: 0.9rem; font-weight: 600; cursor: pointer;
+            font-family: inherit; transition: all 0.2s;
+            display: inline-flex; align-items: center; gap: 8px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), #4f46e5);
+            color: #fff; box-shadow: 0 4px 15px rgba(99,102,241,0.3);
+        }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(99,102,241,0.4); }
+        .btn-success { background: linear-gradient(135deg, var(--success), #16a34a); color: #fff; }
+        .btn-danger { background: linear-gradient(135deg, var(--danger), #dc2626); color: #fff; }
+        .btn-warning { background: linear-gradient(135deg, var(--warning), #d97706); color: #000; }
+        .btn-sm { padding: 6px 14px; font-size: 0.8rem; border-radius: 8px; }
+        .btn-outline {
+            background: transparent; border: 1px solid var(--border);
+            color: var(--text-primary);
+        }
+        .btn-outline:hover { background: rgba(99,102,241,0.1); border-color: var(--accent); }
+        .btn-block { width: 100%; justify-content: center; }
+
+        /* Cards & Sections */
         .card {
-            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 16px; padding: 1.5rem; margin-bottom: 1rem;
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 16px; padding: 24px;
         }
-        .card h3 { color: #00d2ff; margin-bottom: 0.5rem; }
-        .card-meta { color: #8899aa; font-size: 0.85rem; }
-        /* Movie list */
-        .movie-item {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 1rem; border-radius: 10px; margin-bottom: 0.5rem;
-            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+        .card h3 {
+            font-size: 1.1rem; font-weight: 600; margin-bottom: 20px;
+            display: flex; align-items: center; gap: 10px;
         }
-        .movie-info h4 { color: #fff; margin-bottom: 0.3rem; }
-        .movie-actions { display: flex; gap: 0.5rem; }
-        .btn-sm {
-            padding: 6px 14px; border-radius: 8px; font-size: 0.8rem;
-            border: none; cursor: pointer; font-weight: 600; transition: all 0.2s;
+
+        /* Search & Toolbar */
+        .toolbar {
+            display: flex; align-items: center; gap: 12px;
+            margin-bottom: 20px; flex-wrap: wrap;
         }
-        .btn-approve { background: rgba(0,200,100,0.2); color: #00c864; }
-        .btn-reject { background: rgba(255,0,0,0.2); color: #ff4444; }
-        .btn-delete { background: rgba(255,0,0,0.15); color: #ff6666; }
-        .btn-edit { background: rgba(0,150,255,0.2); color: #0096ff; }
-        /* Tags */
-        .tag {
-            display: inline-block; padding: 2px 8px; border-radius: 4px;
-            font-size: 0.75rem; margin-right: 4px;
+        .toolbar input { max-width: 300px; }
+        .toolbar select { max-width: 180px; }
+
+        /* Table */
+        .table-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid var(--border); }
+        table { width: 100%; border-collapse: collapse; }
+        th {
+            background: rgba(99,102,241,0.1); color: var(--text-secondary);
+            font-weight: 600; font-size: 0.8rem; text-transform: uppercase;
+            letter-spacing: 0.05em; padding: 12px 16px; text-align: left;
         }
-        .tag-pending { background: rgba(255,165,0,0.2); color: #ffa500; }
-        .tag-approved { background: rgba(0,200,100,0.2); color: #00c864; }
-        .tag-rejected { background: rgba(255,0,0,0.2); color: #ff4444; }
-        /* Admin table */
-        .admin-table { width: 100%; border-collapse: collapse; }
-        .admin-table th, .admin-table td {
-            padding: 12px; text-align: left;
-            border-bottom: 1px solid rgba(255,255,255,0.06);
+        td {
+            padding: 12px 16px; border-top: 1px solid rgba(255,255,255,0.04);
+            font-size: 0.85rem;
         }
-        .admin-table th { color: #8899aa; font-size: 0.85rem; }
-        .msg { padding: 12px; border-radius: 8px; margin-bottom: 1rem; display: none; }
-        .msg-success { background: rgba(0,200,100,0.15); color: #00c864; }
-        .msg-error { background: rgba(255,0,0,0.15); color: #ff4444; }
-        .checkbox-group {
-            display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;
+        tr:hover td { background: rgba(99,102,241,0.04); }
+        .badge {
+            padding: 3px 10px; border-radius: 12px; font-size: 0.75rem;
+            font-weight: 600; display: inline-block;
         }
-        .checkbox-group label {
-            background: rgba(255,255,255,0.06); padding: 6px 12px;
-            border-radius: 8px; cursor: pointer; font-size: 0.85rem;
-            border: 1px solid rgba(255,255,255,0.1); transition: all 0.2s;
+        .badge-approved { background: rgba(34,197,94,0.15); color: var(--success); }
+        .badge-pending { background: rgba(245,158,11,0.15); color: var(--warning); }
+        .badge-rejected { background: rgba(239,68,68,0.15); color: var(--danger); }
+
+        /* Generated Link Box */
+        .generated-link {
+            background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3);
+            border-radius: 12px; padding: 16px; margin-top: 16px;
+            display: none; animation: fadeIn 0.3s;
         }
-        .checkbox-group label:has(input:checked) {
-            background: rgba(0,210,255,0.15); border-color: #00d2ff; color: #00d2ff;
+        .generated-link.show { display: block; }
+        .link-url {
+            background: var(--bg-input); padding: 10px 14px; border-radius: 8px;
+            font-family: 'Courier New', monospace; font-size: 0.85rem;
+            word-break: break-all; margin: 8px 0;
+            display: flex; align-items: center; justify-content: space-between; gap: 10px;
         }
-        .checkbox-group input { display: none; }
-        select option { background: #1a1a3e; }
+        .link-url span { flex: 1; }
+
+        /* Toggle Switch */
+        .toggle { display: flex; align-items: center; gap: 10px; }
+        .toggle-switch {
+            width: 44px; height: 24px; border-radius: 12px;
+            background: #4b5563; cursor: pointer; position: relative;
+            transition: background 0.2s;
+        }
+        .toggle-switch.on { background: var(--success); }
+        .toggle-switch::after {
+            content: ''; width: 18px; height: 18px; border-radius: 50%;
+            background: #fff; position: absolute; top: 3px; left: 3px;
+            transition: transform 0.2s;
+        }
+        .toggle-switch.on::after { transform: translateX(20px); }
+
+        /* Episode Row */
+        .episode-row {
+            display: grid; grid-template-columns: 60px 1fr 1fr 1fr 40px;
+            gap: 8px; align-items: center; margin-bottom: 10px;
+            padding: 12px; background: rgba(0,0,0,0.2); border-radius: 10px;
+        }
+        .ep-num { font-weight: 700; color: var(--cyan); text-align: center; }
+
+        /* Modal */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.7); z-index: 100;
+            align-items: center; justify-content: center; padding: 20px;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal {
+            background: var(--bg-secondary); border: 1px solid var(--border);
+            border-radius: 20px; padding: 32px; width: 100%; max-width: 520px;
+            max-height: 80vh; overflow-y: auto;
+        }
+        .modal h3 { margin-bottom: 20px; }
+
+        /* Stats Cards */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .stat-card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 14px; padding: 20px; text-align: center;
+        }
+        .stat-value { font-size: 2rem; font-weight: 700; color: var(--cyan); }
+        .stat-label { font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px; }
+
+        /* Toast */
+        .toast {
+            position: fixed; bottom: 24px; right: 24px; z-index: 200;
+            padding: 14px 24px; border-radius: 12px; font-size: 0.9rem;
+            font-weight: 500; transform: translateY(100px); opacity: 0;
+            transition: all 0.3s; box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast-success { background: var(--success); color: #000; }
+        .toast-error { background: var(--danger); color: #fff; }
+
+        /* Loading */
+        .loading { text-align: center; padding: 40px; color: var(--text-secondary); }
+        .spinner {
+            width: 32px; height: 32px; border: 3px solid var(--border);
+            border-top-color: var(--accent); border-radius: 50%;
+            animation: spin 0.8s linear infinite; margin: 0 auto 12px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Action Buttons Group */
+        .actions { display: flex; gap: 6px; }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .form-row, .form-row-3 { grid-template-columns: 1fr; }
+            .toolbar { flex-direction: column; }
+            .toolbar input, .toolbar select { max-width: 100%; }
+            .episode-row { grid-template-columns: 50px 1fr 40px; }
+            .episode-row input:nth-child(3), .episode-row input:nth-child(4) { display: none; }
+            .tabs { flex-wrap: nowrap; }
+        }
     </style>
 </head>
 <body>
-    <!-- LOGIN -->
-    <div id="loginSection" class="login-container">
-        <div class="login-box">
-            <h2>👑 Owner Login</h2>
-            <div id="loginMsg" class="msg"></div>
-            <div class="form-group">
-                <label>Admin ID</label>
-                <input type="text" id="loginId" placeholder="Enter your ID">
-            </div>
-            <div class="form-group">
-                <label>Password</label>
-                <input type="password" id="loginPass" placeholder="Enter password">
-            </div>
-            <button class="submit-btn" onclick="login()">Login</button>
+
+<!-- TOAST -->
+<div id="toast" class="toast"></div>
+
+<!-- LOGIN SCREEN -->
+<div id="loginScreen">
+    <div class="login-card">
+        <h2>👑 Owner Login</h2>
+        <div class="form-group">
+            <label>Admin ID</label>
+            <input type="text" id="loginId" placeholder="Enter your ID" autocomplete="username">
+        </div>
+        <div class="form-group">
+            <label>Password</label>
+            <input type="password" id="loginPass" placeholder="Enter password" autocomplete="current-password">
+        </div>
+        <button class="btn btn-warning btn-block" onclick="doLogin()" style="margin-top: 8px;">Login</button>
+    </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard">
+    <!-- Top Bar -->
+    <div class="topbar">
+        <h1>🎬 MovieZone Owner Panel</h1>
+        <div class="topbar-right">
+            <span class="role-badge" id="roleBadge">OWNER</span>
+            <button class="btn btn-sm btn-outline" onclick="doLogout()">Logout</button>
         </div>
     </div>
 
-    <!-- DASHBOARD -->
-    <div id="dashboard" class="dashboard">
-        <div class="header">
-            <h1>👑 MovieZone Owner Panel</h1>
-            <button class="logout-btn" onclick="logout()">Logout</button>
+    <div class="main-content">
+        <!-- Stats -->
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card"><div class="stat-value" id="statMovies">0</div><div class="stat-label">Total Movies</div></div>
+            <div class="stat-card"><div class="stat-value" id="statViews">0</div><div class="stat-label">Total Views</div></div>
+            <div class="stat-card"><div class="stat-value" id="statPending">0</div><div class="stat-label">Pending Review</div></div>
+            <div class="stat-card"><div class="stat-value" id="statAdmins">0</div><div class="stat-label">Admins</div></div>
         </div>
 
+        <!-- Tabs -->
         <div class="tabs">
-            <div class="tab active" onclick="switchTab('addMovie')">➕ Add Movie</div>
-            <div class="tab" onclick="switchTab('movies')">🎬 All Movies</div>
-            <div class="tab" onclick="switchTab('pending')">⏳ Pending Review</div>
-            <div class="tab" onclick="switchTab('admins')">👥 Manage Admins</div>
+            <button class="tab-btn active" onclick="switchTab('addSingle', this)">➕ Single Link</button>
+            <button class="tab-btn" onclick="switchTab('addQuality', this)">🎞️ Quality</button>
+            <button class="tab-btn" onclick="switchTab('addEpisode', this)">📺 Episodes</button>
+            <button class="tab-btn" onclick="switchTab('addZip', this)">📦 Zip</button>
+            <button class="tab-btn" onclick="switchTab('allMovies', this)">📋 All Movies</button>
+            <button class="tab-btn" onclick="switchTab('pending', this)">⏳ Pending</button>
+            <button class="tab-btn" onclick="switchTab('admins', this)">👥 Admins</button>
         </div>
 
-        <!-- ADD MOVIE TAB -->
-        <div id="tab-addMovie" class="tab-content active">
+        <!-- TAB: Add Single Link -->
+        <div class="tab-panel active" id="tab-addSingle">
             <div class="card">
-                <h3>➕ Add New Movie</h3>
-                <div id="addMsg" class="msg"></div>
-                <div class="form-group">
-                    <label>Movie Title *</label>
-                    <input type="text" id="movieTitle" placeholder="e.g. Inception (2010)">
+                <h3>➕ Add Single Movie Link</h3>
+                <div class="form-group"><label>Movie Name</label><input type="text" id="singleName" placeholder="e.g. Interstellar"></div>
+                <div class="form-group"><label>Original Download Link</label><input type="text" id="singleLink" placeholder="https://..."></div>
+                <div class="toggle form-group"><span>Ads Enabled</span><div class="toggle-switch on" id="singleAds" onclick="toggleSwitch(this)"></div></div>
+                <button class="btn btn-primary" onclick="addSingleMovie()">Generate Short Link</button>
+                <div class="generated-link" id="singleResult">
+                    <strong>✅ Short Link Generated!</strong>
+                    <div class="link-url"><span id="singleUrl"></span><button class="btn btn-sm btn-outline" onclick="copyText('singleUrl')">📋 Copy</button></div>
                 </div>
-                <div class="form-group">
-                    <label>Download Type</label>
-                    <select id="downloadType" onchange="toggleDownloadFields()">
-                        <option value="single">Single Link</option>
-                        <option value="quality">Multi-Quality (480p/720p/1080p)</option>
-                        <option value="episode">Episode Series</option>
+            </div>
+        </div>
+
+        <!-- TAB: Add Quality Link -->
+        <div class="tab-panel" id="tab-addQuality">
+            <div class="card">
+                <h3>🎞️ Add Quality Movie Link</h3>
+                <div class="form-group"><label>Movie Name</label><input type="text" id="qualityName" placeholder="e.g. The Dark Knight"></div>
+                <div class="form-row-3">
+                    <div class="form-group"><label>480p Link</label><input type="text" id="q480" placeholder="https://..."></div>
+                    <div class="form-group"><label>720p Link</label><input type="text" id="q720" placeholder="https://..."></div>
+                    <div class="form-group"><label>1080p Link</label><input type="text" id="q1080" placeholder="https://..."></div>
+                </div>
+                <div class="toggle form-group"><span>Ads Enabled</span><div class="toggle-switch on" id="qualityAds" onclick="toggleSwitch(this)"></div></div>
+                <button class="btn btn-primary" onclick="addQualityMovie()">Generate Short Link</button>
+                <div class="generated-link" id="qualityResult">
+                    <strong>✅ Short Link Generated!</strong>
+                    <div class="link-url"><span id="qualityUrl"></span><button class="btn btn-sm btn-outline" onclick="copyText('qualityUrl')">📋 Copy</button></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: Add Episodes -->
+        <div class="tab-panel" id="tab-addEpisode">
+            <div class="card">
+                <h3>📺 Add Episode Series</h3>
+                <div class="form-row">
+                    <div class="form-group"><label>Series Name</label><input type="text" id="epSeriesName" placeholder="e.g. Breaking Bad S01"></div>
+                    <div class="form-group"><label>Start From Episode</label><input type="number" id="epStart" value="1" min="1"></div>
+                </div>
+                <div id="episodeRows"></div>
+                <div style="display:flex;gap:10px;margin:12px 0;">
+                    <button class="btn btn-sm btn-outline" onclick="addEpisodeRow()">+ Add Episode</button>
+                </div>
+                <div class="toggle form-group"><span>Ads Enabled</span><div class="toggle-switch on" id="epAds" onclick="toggleSwitch(this)"></div></div>
+                <button class="btn btn-primary" onclick="addEpisodeSeries()">Generate Short Link</button>
+                <div class="generated-link" id="epResult">
+                    <strong>✅ Short Link Generated!</strong>
+                    <div class="link-url"><span id="epUrl"></span><button class="btn btn-sm btn-outline" onclick="copyText('epUrl')">📋 Copy</button></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: Add Zip -->
+        <div class="tab-panel" id="tab-addZip">
+            <div class="card">
+                <h3>📦 Add Zip Download</h3>
+                <div class="form-group"><label>Movie/Series Name</label><input type="text" id="zipName" placeholder="e.g. Breaking Bad S01 Complete"></div>
+                <div class="form-row">
+                    <div class="form-group"><label>From Episode</label><input type="number" id="zipFrom" min="1" placeholder="1"></div>
+                    <div class="form-group"><label>To Episode</label><input type="number" id="zipTo" min="1" placeholder="10"></div>
+                </div>
+                <div class="form-row-3">
+                    <div class="form-group"><label>480p Zip Link</label><input type="text" id="zip480" placeholder="https://..."></div>
+                    <div class="form-group"><label>720p Zip Link</label><input type="text" id="zip720" placeholder="https://..."></div>
+                    <div class="form-group"><label>1080p Zip Link</label><input type="text" id="zip1080" placeholder="https://..."></div>
+                </div>
+                <div class="toggle form-group"><span>Ads Enabled</span><div class="toggle-switch on" id="zipAds" onclick="toggleSwitch(this)"></div></div>
+                <button class="btn btn-primary" onclick="addZipMovie()">Generate Short Link</button>
+                <div class="generated-link" id="zipResult">
+                    <strong>✅ Short Link Generated!</strong>
+                    <div class="link-url"><span id="zipUrl"></span><button class="btn btn-sm btn-outline" onclick="copyText('zipUrl')">📋 Copy</button></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: All Movies -->
+        <div class="tab-panel" id="tab-allMovies">
+            <div class="card">
+                <h3>📋 All Movies</h3>
+                <div class="toolbar">
+                    <input type="text" id="searchInput" placeholder="🔍 Search movies..." oninput="filterMovies()">
+                    <select id="sortSelect" onchange="filterMovies()">
+                        <option value="date_desc">Newest First</option>
+                        <option value="date_asc">Oldest First</option>
+                        <option value="name_asc">Name A-Z</option>
+                        <option value="name_desc">Name Z-A</option>
                     </select>
+                    <button class="btn btn-sm btn-outline" onclick="loadMovies()">🔄 Refresh</button>
                 </div>
-                <div id="singleFields">
-                    <div class="form-group">
-                        <label>Download Link (Original URL) *</label>
-                        <input type="url" id="originalLink" placeholder="https://...">
-                    </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>ID</th><th>Title</th><th>Type</th><th>Status</th><th>Views</th><th>Short URL</th><th>Actions</th></tr></thead>
+                        <tbody id="moviesTable"><tr><td colspan="7" class="loading"><div class="spinner"></div>Loading...</td></tr></tbody>
+                    </table>
                 </div>
-                <div id="qualityFields" style="display:none;">
-                    <div class="form-group">
-                        <label>480p Link</label>
-                        <input type="url" id="q480p" placeholder="480p download URL">
-                    </div>
-                    <div class="form-group">
-                        <label>720p Link</label>
-                        <input type="url" id="q720p" placeholder="720p download URL">
-                    </div>
-                    <div class="form-group">
-                        <label>1080p Link</label>
-                        <input type="url" id="q1080p" placeholder="1080p download URL">
-                    </div>
-                </div>
-                <div id="episodeFields" style="display:none;">
-                    <div class="form-group">
-                        <label>Episodes (one per line: EpisodeName|URL)</label>
-                        <textarea id="episodeList" rows="5" placeholder="Episode 1|https://...&#10;Episode 2|https://..."></textarea>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Categories</label>
-                    <div class="checkbox-group" id="categoryCheckboxes"></div>
-                </div>
-                <div class="form-group">
-                    <label>Languages</label>
-                    <div class="checkbox-group" id="languageCheckboxes"></div>
-                </div>
-                <div class="form-group">
-                    <label>Release Year</label>
-                    <input type="text" id="releaseYear" placeholder="e.g. 2024">
-                </div>
-                <div class="form-group">
-                    <label>Runtime</label>
-                    <input type="text" id="runtime" placeholder="e.g. 2h 28m">
-                </div>
-                <div class="form-group">
-                    <label>IMDb Rating</label>
-                    <input type="text" id="imdbRating" placeholder="e.g. 8.8">
-                </div>
-                <button class="submit-btn" onclick="addMovie()">➕ Add Movie (goes to review queue)</button>
             </div>
         </div>
 
-        <!-- ALL MOVIES TAB -->
-        <div id="tab-movies" class="tab-content">
+        <!-- TAB: Pending Review -->
+        <div class="tab-panel" id="tab-pending">
             <div class="card">
-                <h3>🎬 All Movies</h3>
-                <div id="movieList"></div>
+                <h3>⏳ Pending Movies</h3>
+                <div id="pendingList"><div class="loading"><div class="spinner"></div>Loading...</div></div>
             </div>
         </div>
 
-        <!-- PENDING REVIEW TAB -->
-        <div id="tab-pending" class="tab-content">
+        <!-- TAB: Admin Management -->
+        <div class="tab-panel" id="tab-admins">
             <div class="card">
-                <h3>⏳ Pending Review</h3>
-                <div id="pendingList"></div>
-            </div>
-        </div>
-
-        <!-- MANAGE ADMINS TAB -->
-        <div id="tab-admins" class="tab-content">
-            <div class="card">
-                <h3>👥 Manage Admin Accounts</h3>
-                <div id="adminMsg" class="msg"></div>
-                <div style="margin-bottom: 1.5rem;">
-                    <div class="form-group">
-                        <label>New Admin ID</label>
-                        <input type="text" id="newAdminId" placeholder="admin_username">
-                    </div>
-                    <div class="form-group">
-                        <label>Password</label>
-                        <input type="password" id="newAdminPass" placeholder="admin_password">
-                    </div>
-                    <div class="form-group">
-                        <label>Display Name</label>
-                        <input type="text" id="newAdminName" placeholder="Admin Name">
-                    </div>
-                    <button class="submit-btn" onclick="createAdmin()">Create Admin Account</button>
+                <h3>👥 Admin Accounts</h3>
+                <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;">
+                    <input type="text" id="newAdminId" placeholder="Admin ID" style="max-width:180px;">
+                    <input type="password" id="newAdminPass" placeholder="Password" style="max-width:180px;">
+                    <input type="text" id="newAdminName" placeholder="Display Name" style="max-width:180px;">
+                    <button class="btn btn-sm btn-success" onclick="createAdmin()">+ Create Admin</button>
                 </div>
-                <table class="admin-table">
-                    <thead><tr><th>ID</th><th>Name</th><th>Status</th><th>Actions</th></tr></thead>
-                    <tbody id="adminTableBody"></tbody>
-                </table>
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>Admin ID</th><th>Display Name</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead>
+                        <tbody id="adminsTable"><tr><td colspan="5" class="loading"><div class="spinner"></div>Loading...</td></tr></tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
+</div>
 
-    <script>
-        const CATEGORIES = [
-            "Bollywood 🇮🇳","Hollywood 🇺🇸","South Indian 🎬","Web Series 🎥",
-            "Bengali ✨","Anime & cartoon 🌀","Comedy 🤣","Action 💥",
-            "Romance 💑","Horror 😱","Thriller 🔍","Sci-Fi 🛸",
-            "K-Drama 🎎","18+ 🔞","Mystery 😲","Crime 🚔","Fantasy 🧿",
-            "Adventure 🗺️","Documentary 📚","Drama 🎭"
-        ];
-        const LANGUAGES = ["Bengali","Hindi","English","Tamil","Telugu","Korean","Gujarati","Malayalam","Chinese","Punjabi","Marathi"];
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="editModal">
+    <div class="modal">
+        <h3>✏️ Edit Movie</h3>
+        <input type="hidden" id="editId">
+        <div class="form-group"><label>Title</label><input type="text" id="editTitle"></div>
+        <div class="form-group"><label>Original Link</label><input type="text" id="editLink"></div>
+        <div class="form-row-3">
+            <div class="form-group"><label>480p</label><input type="text" id="editQ480"></div>
+            <div class="form-group"><label>720p</label><input type="text" id="editQ720"></div>
+            <div class="form-group"><label>1080p</label><input type="text" id="editQ1080"></div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:16px;">
+            <button class="btn btn-primary" onclick="saveEdit()">Save Changes</button>
+            <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+        </div>
+    </div>
+</div>
 
-        let userRole = '';
+<script>
+let allMovies = [];
+let currentRole = '';
+const API = '';  // same origin
 
-        // Build checkboxes
-        function buildCheckboxes() {
-            const catDiv = document.getElementById('categoryCheckboxes');
-            CATEGORIES.forEach(c => {
-                catDiv.innerHTML += `<label><input type="checkbox" value="${c.split(' ')[0]}"> ${c}</label>`;
-            });
-            const langDiv = document.getElementById('languageCheckboxes');
-            LANGUAGES.forEach(l => {
-                langDiv.innerHTML += `<label><input type="checkbox" value="${l}"> ${l}</label>`;
-            });
+// --- Toast ---
+function showToast(msg, type='success') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast toast-' + type + ' show';
+    setTimeout(() => t.className = 'toast', 3000);
+}
+
+// --- Toggle ---
+function toggleSwitch(el) { el.classList.toggle('on'); }
+function isToggleOn(id) { return document.getElementById(id).classList.contains('on'); }
+
+// --- Tabs ---
+function switchTab(name, btn) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    btn.classList.add('active');
+    if (name === 'allMovies') loadMovies();
+    if (name === 'pending') loadPending();
+    if (name === 'admins') loadAdmins();
+}
+
+// --- Login ---
+async function doLogin() {
+    const id = document.getElementById('loginId').value.trim();
+    const pass = document.getElementById('loginPass').value.trim();
+    if (!id || !pass) return showToast('Enter ID and password', 'error');
+
+    try {
+        const res = await fetch(API + '/api/admin-login', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({adminId: id, adminPassword: pass})
+        });
+        const data = await res.json();
+        if (data.success) {
+            currentRole = data.role;
+            document.getElementById('roleBadge').textContent = data.role.toUpperCase();
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'block';
+            localStorage.setItem('moviezone_admin_logged_in', 'true');
+            localStorage.setItem('moviezone_role', data.role);
+            loadStats();
+            showToast('Welcome back!');
+        } else {
+            showToast(data.error || 'Invalid credentials', 'error');
         }
-        buildCheckboxes();
+    } catch(e) { showToast('Login failed: ' + e.message, 'error'); }
+}
 
-        function showMsg(id, msg, type) {
-            const el = document.getElementById(id);
-            el.className = `msg msg-${type}`;
-            el.textContent = msg;
-            el.style.display = 'block';
-            setTimeout(() => el.style.display = 'none', 4000);
-        }
+function doLogout() {
+    localStorage.removeItem('moviezone_admin_logged_in');
+    localStorage.removeItem('moviezone_role');
+    document.getElementById('dashboard').style.display = 'none';
+    document.getElementById('loginScreen').style.display = 'flex';
+}
 
-        async function login() {
-            const id = document.getElementById('loginId').value;
-            const pass = document.getElementById('loginPass').value;
-            try {
-                const r = await fetch('/api/admin-login', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({adminId: id, adminPassword: pass})
-                });
-                const data = await r.json();
-                if (data.success) {
-                    userRole = data.role;
-                    document.getElementById('loginSection').style.display = 'none';
-                    document.getElementById('dashboard').style.display = 'block';
-                    // Show admin tab only for owner
-                    if (userRole !== 'owner') {
-                        document.querySelector('[onclick*="admins"]').style.display = 'none';
-                    }
-                    loadMovies();
-                    loadPending();
-                    if (userRole === 'owner') loadAdmins();
-                } else {
-                    showMsg('loginMsg', data.error || 'Login failed', 'error');
-                }
-            } catch(e) {
-                showMsg('loginMsg', 'Connection error', 'error');
-            }
-        }
+// --- Auto-login check ---
+if (localStorage.getItem('moviezone_admin_logged_in')) {
+    currentRole = localStorage.getItem('moviezone_role') || 'owner';
+    document.getElementById('roleBadge').textContent = currentRole.toUpperCase();
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    loadStats();
+}
 
-        function logout() {
-            userRole = '';
-            document.getElementById('loginSection').style.display = 'flex';
-            document.getElementById('dashboard').style.display = 'none';
-        }
+// --- Stats ---
+async function loadStats() {
+    try {
+        const movies = await fetch(API + '/api/movie-links').then(r => r.json());
+        const admins = await fetch(API + '/api/admin-accounts').then(r => r.json());
+        allMovies = Array.isArray(movies) ? movies : [];
+        const adminList = Array.isArray(admins) ? admins : [];
 
-        function switchTab(name) {
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-            event.target.classList.add('active');
-            document.getElementById('tab-' + name).classList.add('active');
-            if (name === 'movies') loadMovies();
-            if (name === 'pending') loadPending();
-            if (name === 'admins') loadAdmins();
-        }
+        document.getElementById('statMovies').textContent = allMovies.length;
+        document.getElementById('statViews').textContent = allMovies.reduce((s,m) => s + (m.views||0),0);
+        document.getElementById('statPending').textContent = allMovies.filter(m => m.status === 'pending').length;
+        document.getElementById('statAdmins').textContent = adminList.length;
+    } catch(e) { console.error('Stats error:', e); }
+}
 
-        function toggleDownloadFields() {
-            const type = document.getElementById('downloadType').value;
-            document.getElementById('singleFields').style.display = type === 'single' ? '' : 'none';
-            document.getElementById('qualityFields').style.display = type === 'quality' ? '' : 'none';
-            document.getElementById('episodeFields').style.display = type === 'episode' ? '' : 'none';
-        }
+// --- Add Single Movie ---
+async function addSingleMovie() {
+    const name = document.getElementById('singleName').value.trim();
+    const link = document.getElementById('singleLink').value.trim();
+    if (!name) return showToast('Enter movie name', 'error');
+    if (!link) return showToast('Enter download link', 'error');
 
-        function getChecked(containerId) {
-            return [...document.querySelectorAll(`#${containerId} input:checked`)].map(i => i.value);
-        }
+    try {
+        const res = await fetch(API + '/api/movie-links', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({title: name, originalLink: link, downloadType: 'single', adsEnabled: isToggleOn('singleAds'), status: 'pending'})
+        });
+        const data = await res.json();
+        if (data.success || data.shortUrl) {
+            document.getElementById('singleUrl').textContent = data.shortUrl;
+            document.getElementById('singleResult').classList.add('show');
+            document.getElementById('singleName').value = '';
+            document.getElementById('singleLink').value = '';
+            showToast('Movie link created!');
+            loadStats();
+        } else showToast(data.error || 'Failed', 'error');
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
 
-        async function addMovie() {
-            const title = document.getElementById('movieTitle').value;
-            if (!title) return showMsg('addMsg', 'Title is required', 'error');
+// --- Add Quality Movie ---
+async function addQualityMovie() {
+    const name = document.getElementById('qualityName').value.trim();
+    const q480 = document.getElementById('q480').value.trim();
+    const q720 = document.getElementById('q720').value.trim();
+    const q1080 = document.getElementById('q1080').value.trim();
+    if (!name) return showToast('Enter movie name', 'error');
+    if (!q480 && !q720 && !q1080) return showToast('Enter at least one quality link', 'error');
 
-            const type = document.getElementById('downloadType').value;
-            const body = {
-                title, downloadType: type,
-                categories: getChecked('categoryCheckboxes'),
-                languages: getChecked('languageCheckboxes'),
-                releaseYear: document.getElementById('releaseYear').value || 'N/A',
-                runtime: document.getElementById('runtime').value || 'N/A',
-                imdbRating: document.getElementById('imdbRating').value || 'N/A',
-                status: 'pending',
-                addedBy: userRole
-            };
+    try {
+        const res = await fetch(API + '/api/movie-links', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({title: name, downloadType: 'quality', quality480p: q480||null, quality720p: q720||null, quality1080p: q1080||null, adsEnabled: isToggleOn('qualityAds'), status: 'pending'})
+        });
+        const data = await res.json();
+        if (data.success || data.shortUrl) {
+            document.getElementById('qualityUrl').textContent = data.shortUrl;
+            document.getElementById('qualityResult').classList.add('show');
+            ['qualityName','q480','q720','q1080'].forEach(id => document.getElementById(id).value = '');
+            showToast('Quality link created!');
+            loadStats();
+        } else showToast(data.error || 'Failed', 'error');
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
 
-            if (type === 'single') body.originalLink = document.getElementById('originalLink').value;
-            if (type === 'quality') {
-                body.quality480p = document.getElementById('q480p').value;
-                body.quality720p = document.getElementById('q720p').value;
-                body.quality1080p = document.getElementById('q1080p').value;
-            }
-            if (type === 'episode') {
-                const lines = document.getElementById('episodeList').value.split('\n').filter(l => l.trim());
-                const eps = {};
-                lines.forEach((l, i) => {
-                    const [name, url] = l.split('|');
-                    eps[`E${i+1}`] = url ? url.trim() : name.trim();
-                });
-                body.episodes = JSON.stringify(eps);
-            }
+// --- Episodes ---
+let episodeCount = 0;
+function addEpisodeRow() {
+    episodeCount++;
+    const start = parseInt(document.getElementById('epStart').value) || 1;
+    const epNum = start + episodeCount - 1;
+    const div = document.createElement('div');
+    div.className = 'episode-row';
+    div.innerHTML = `
+        <span class="ep-num">E${epNum}</span>
+        <input type="text" placeholder="480p link" class="ep-480">
+        <input type="text" placeholder="720p link" class="ep-720">
+        <input type="text" placeholder="1080p link" class="ep-1080">
+        <button class="btn btn-sm btn-danger" onclick="this.parentElement.remove()">✕</button>
+    `;
+    document.getElementById('episodeRows').appendChild(div);
+}
+// Init with 1 row
+addEpisodeRow();
 
-            try {
-                const r = await fetch('/api/movie-links', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(body)
-                });
-                const data = await r.json();
-                if (data.success) {
-                    showMsg('addMsg', `✅ Movie added! Short link: ${data.shortUrl}`, 'success');
-                    document.getElementById('movieTitle').value = '';
-                    document.getElementById('originalLink').value = '';
-                } else {
-                    showMsg('addMsg', data.error || 'Failed', 'error');
-                }
-            } catch(e) {
-                showMsg('addMsg', 'Error: ' + e.message, 'error');
-            }
-        }
+async function addEpisodeSeries() {
+    const name = document.getElementById('epSeriesName').value.trim();
+    if (!name) return showToast('Enter series name', 'error');
 
-        async function loadMovies() {
-            try {
-                const r = await fetch('/api/movie-links');
-                const movies = await r.json();
-                const div = document.getElementById('movieList');
-                if (!movies.length) { div.innerHTML = '<p style="color:#666">No movies yet</p>'; return; }
-                div.innerHTML = movies.map(m => `
-                    <div class="movie-item">
-                        <div class="movie-info">
-                            <h4>${m.title}</h4>
-                            <span class="card-meta">${m.download_type} • ${m.views||0} views</span>
-                            <span class="tag tag-${m.status}">${m.status}</span>
-                        </div>
-                        <div class="movie-actions">
-                            <button class="btn-sm btn-delete" onclick="deleteMovie(${m.id})">🗑️</button>
-                        </div>
-                    </div>
-                `).join('');
-            } catch(e) { console.error(e); }
-        }
+    const rows = document.querySelectorAll('.episode-row');
+    const startFrom = parseInt(document.getElementById('epStart').value) || 1;
+    const episodes = [];
+    rows.forEach((row, i) => {
+        episodes.push({
+            episodeNumber: startFrom + i,
+            quality480p: row.querySelector('.ep-480').value.trim(),
+            quality720p: row.querySelector('.ep-720').value.trim(),
+            quality1080p: row.querySelector('.ep-1080').value.trim()
+        });
+    });
 
-        async function loadPending() {
-            try {
-                const r = await fetch('/api/pending-movies');
-                const movies = await r.json();
-                const div = document.getElementById('pendingList');
-                if (!movies.length) { div.innerHTML = '<p style="color:#666">No pending movies</p>'; return; }
-                div.innerHTML = movies.map(m => `
-                    <div class="movie-item">
-                        <div class="movie-info">
-                            <h4>${m.title}</h4>
-                            <span class="card-meta">${m.download_type} • Added: ${new Date(m.created_at).toLocaleDateString()}</span>
-                        </div>
-                        <div class="movie-actions">
-                            <button class="btn-sm btn-approve" onclick="approveMovie(${m.id})">✅</button>
-                            <button class="btn-sm btn-reject" onclick="rejectMovie(${m.id})">❌</button>
-                        </div>
-                    </div>
-                `).join('');
-            } catch(e) { console.error(e); }
-        }
+    try {
+        const res = await fetch(API + '/api/movie-links', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({title: name, downloadType: 'episode', episodes: JSON.stringify(episodes), startFromEpisode: startFrom, adsEnabled: isToggleOn('epAds'), status: 'pending'})
+        });
+        const data = await res.json();
+        if (data.success || data.shortUrl) {
+            document.getElementById('epUrl').textContent = data.shortUrl;
+            document.getElementById('epResult').classList.add('show');
+            showToast('Episode series created!');
+            loadStats();
+        } else showToast(data.error || 'Failed', 'error');
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
 
-        async function loadAdmins() {
-            try {
-                const r = await fetch('/api/admin-accounts');
-                const admins = await r.json();
-                const tbody = document.getElementById('adminTableBody');
-                tbody.innerHTML = admins.map(a => `
-                    <tr>
-                        <td>${a.admin_id}</td>
-                        <td>${a.display_name || '-'}</td>
-                        <td><span class="tag ${a.is_active ? 'tag-approved' : 'tag-rejected'}">${a.is_active ? 'Active' : 'Inactive'}</span></td>
-                        <td>
-                            <button class="btn-sm btn-delete" onclick="deleteAdmin(${a.id})">🗑️</button>
-                        </td>
-                    </tr>
-                `).join('');
-            } catch(e) { console.error(e); }
-        }
+// --- Zip ---
+async function addZipMovie() {
+    const name = document.getElementById('zipName').value.trim();
+    const from = parseInt(document.getElementById('zipFrom').value);
+    const to = parseInt(document.getElementById('zipTo').value);
+    if (!name) return showToast('Enter name', 'error');
+    if (!from || !to || from >= to) return showToast('Invalid episode range', 'error');
 
-        async function deleteMovie(id) {
-            if (!confirm('Delete this movie?')) return;
-            await fetch(`/api/movie-links/${id}`, {method: 'DELETE'});
-            loadMovies();
-        }
+    const z480 = document.getElementById('zip480').value.trim();
+    const z720 = document.getElementById('zip720').value.trim();
+    const z1080 = document.getElementById('zip1080').value.trim();
+    if (!z480 && !z720 && !z1080) return showToast('Enter at least one zip link', 'error');
 
-        async function approveMovie(id) {
-            await fetch(`/api/movies/${id}/approve`, {method: 'POST'});
-            loadPending(); loadMovies();
-        }
+    try {
+        const res = await fetch(API + '/api/movie-links', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({title: name, downloadType: 'zip', fromEpisode: from, toEpisode: to, quality480p: z480||null, quality720p: z720||null, quality1080p: z1080||null, adsEnabled: isToggleOn('zipAds'), status: 'pending'})
+        });
+        const data = await res.json();
+        if (data.success || data.shortUrl) {
+            document.getElementById('zipUrl').textContent = data.shortUrl;
+            document.getElementById('zipResult').classList.add('show');
+            showToast('Zip link created!');
+            loadStats();
+        } else showToast(data.error || 'Failed', 'error');
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
 
-        async function rejectMovie(id) {
-            await fetch(`/api/movies/${id}/reject`, {method: 'POST'});
-            loadPending();
-        }
+// --- All Movies ---
+async function loadMovies() {
+    try {
+        const res = await fetch(API + '/api/movie-links');
+        allMovies = await res.json();
+        if (!Array.isArray(allMovies)) allMovies = [];
+        filterMovies();
+    } catch(e) { showToast('Failed to load movies', 'error'); }
+}
 
-        async function createAdmin() {
-            const id = document.getElementById('newAdminId').value;
-            const pass = document.getElementById('newAdminPass').value;
-            const name = document.getElementById('newAdminName').value;
-            if (!id || !pass) return showMsg('adminMsg', 'ID and password required', 'error');
-            try {
-                const r = await fetch('/api/admin-accounts', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({adminId: id, adminPassword: pass, displayName: name})
-                });
-                const data = await r.json();
-                if (data.success) {
-                    showMsg('adminMsg', '✅ Admin created', 'success');
-                    document.getElementById('newAdminId').value = '';
-                    document.getElementById('newAdminPass').value = '';
-                    document.getElementById('newAdminName').value = '';
-                    loadAdmins();
-                } else {
-                    showMsg('adminMsg', data.error || 'Failed', 'error');
-                }
-            } catch(e) { showMsg('adminMsg', 'Error', 'error'); }
-        }
+function filterMovies() {
+    const search = (document.getElementById('searchInput').value || '').toLowerCase();
+    const sort = document.getElementById('sortSelect').value;
+    let filtered = allMovies.filter(m => (m.title || '').toLowerCase().includes(search));
 
-        async function deleteAdmin(id) {
-            if (!confirm('Delete this admin?')) return;
-            await fetch(`/api/admin-accounts/${id}`, {method: 'DELETE'});
-            loadAdmins();
-        }
-    </script>
+    if (sort === 'date_desc') filtered.sort((a,b) => (b.created_at||'').localeCompare(a.created_at||''));
+    else if (sort === 'date_asc') filtered.sort((a,b) => (a.created_at||'').localeCompare(b.created_at||''));
+    else if (sort === 'name_asc') filtered.sort((a,b) => (a.title||'').localeCompare(b.title||''));
+    else if (sort === 'name_desc') filtered.sort((a,b) => (b.title||'').localeCompare(a.title||''));
+
+    const tbody = document.getElementById('moviesTable');
+    if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-secondary)">No movies found</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = filtered.map(m => {
+        const statusClass = m.status === 'approved' ? 'badge-approved' : m.status === 'pending' ? 'badge-pending' : 'badge-rejected';
+        const shortUrl = m.short_id ? `${location.origin}/m/${m.short_id}` : '—';
+        return `<tr>
+            <td>${m.id}</td>
+            <td><strong>${escHtml(m.title||'')}</strong></td>
+            <td>${m.download_type || 'single'}</td>
+            <td><span class="badge ${statusClass}">${m.status||'pending'}</span></td>
+            <td>${m.views||0}</td>
+            <td style="font-size:0.75rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${shortUrl}</td>
+            <td><div class="actions">
+                <button class="btn btn-sm btn-outline" onclick="openEdit(${m.id})">✏️</button>
+                <button class="btn btn-sm btn-danger" onclick="deleteMovie(${m.id})">🗑️</button>
+            </div></td>
+        </tr>`;
+    }).join('');
+}
+
+function escHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+// --- Edit Movie ---
+function openEdit(id) {
+    const m = allMovies.find(x => x.id === id);
+    if (!m) return;
+    document.getElementById('editId').value = id;
+    document.getElementById('editTitle').value = m.title || '';
+    document.getElementById('editLink').value = m.original_link || '';
+    document.getElementById('editQ480').value = m.quality_480p || '';
+    document.getElementById('editQ720').value = m.quality_720p || '';
+    document.getElementById('editQ1080').value = m.quality_1080p || '';
+    document.getElementById('editModal').classList.add('show');
+}
+
+function closeModal() { document.getElementById('editModal').classList.remove('show'); }
+
+async function saveEdit() {
+    const id = document.getElementById('editId').value;
+    const data = {
+        title: document.getElementById('editTitle').value.trim(),
+        original_link: document.getElementById('editLink').value.trim(),
+        quality_480p: document.getElementById('editQ480').value.trim() || null,
+        quality_720p: document.getElementById('editQ720').value.trim() || null,
+        quality_1080p: document.getElementById('editQ1080').value.trim() || null,
+    };
+    try {
+        await fetch(API + `/api/movie-links/${id}`, {method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data)});
+        closeModal();
+        showToast('Movie updated!');
+        loadMovies();
+    } catch(e) { showToast('Update failed', 'error'); }
+}
+
+async function deleteMovie(id) {
+    if (!confirm('Delete this movie permanently?')) return;
+    try {
+        await fetch(API + `/api/movie-links/${id}`, {method: 'DELETE'});
+        showToast('Movie deleted');
+        loadMovies();
+        loadStats();
+    } catch(e) { showToast('Delete failed', 'error'); }
+}
+
+// --- Pending ---
+async function loadPending() {
+    try {
+        const res = await fetch(API + '/api/pending-movies');
+        const pending = await res.json();
+        const el = document.getElementById('pendingList');
+
+        if (!pending.length) { el.innerHTML = '<p style="text-align:center;padding:40px;color:var(--text-secondary)">🎉 No pending movies!</p>'; return; }
+
+        el.innerHTML = pending.map(m => `
+            <div class="card" style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+                <div>
+                    <strong>${escHtml(m.title||'')}</strong>
+                    <span class="badge badge-pending" style="margin-left:8px">${m.download_type||'single'}</span>
+                </div>
+                <div class="actions">
+                    <button class="btn btn-sm btn-success" onclick="approvePending(${m.id})">✅ Approve</button>
+                    <button class="btn btn-sm btn-danger" onclick="rejectPending(${m.id})">❌ Reject</button>
+                </div>
+            </div>
+        `).join('');
+    } catch(e) { showToast('Failed to load pending', 'error'); }
+}
+
+async function approvePending(id) {
+    try {
+        await fetch(API + `/api/movies/${id}/approve`, {method: 'POST'});
+        showToast('Movie approved!');
+        loadPending(); loadStats();
+    } catch(e) { showToast('Approve failed', 'error'); }
+}
+
+async function rejectPending(id) {
+    try {
+        await fetch(API + `/api/movies/${id}/reject`, {method: 'POST'});
+        showToast('Movie rejected');
+        loadPending(); loadStats();
+    } catch(e) { showToast('Reject failed', 'error'); }
+}
+
+// --- Admins ---
+async function loadAdmins() {
+    try {
+        const res = await fetch(API + '/api/admin-accounts');
+        const admins = await res.json();
+        const tbody = document.getElementById('adminsTable');
+        if (!admins.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-secondary)">No admin accounts yet</td></tr>'; return; }
+
+        tbody.innerHTML = admins.map(a => `<tr>
+            <td><strong>${escHtml(a.admin_id)}</strong></td>
+            <td>${escHtml(a.display_name||'')}</td>
+            <td><span class="badge ${a.is_active?'badge-approved':'badge-rejected'}">${a.is_active?'Active':'Disabled'}</span></td>
+            <td>${(a.created_at||'').slice(0,10)}</td>
+            <td><div class="actions">
+                <button class="btn btn-sm btn-${a.is_active?'warning':'success'}" onclick="toggleAdmin(${a.id},${!a.is_active})">${a.is_active?'Disable':'Enable'}</button>
+                <button class="btn btn-sm btn-danger" onclick="deleteAdmin(${a.id})">🗑️</button>
+            </div></td>
+        </tr>`).join('');
+    } catch(e) { showToast('Failed to load admins', 'error'); }
+}
+
+async function createAdmin() {
+    const id = document.getElementById('newAdminId').value.trim();
+    const pass = document.getElementById('newAdminPass').value.trim();
+    const name = document.getElementById('newAdminName').value.trim();
+    if (!id || !pass) return showToast('Admin ID and password required', 'error');
+
+    try {
+        const res = await fetch(API + '/api/admin-accounts', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({adminId: id, adminPassword: pass, displayName: name})
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast('Admin created!');
+            ['newAdminId','newAdminPass','newAdminName'].forEach(i => document.getElementById(i).value = '');
+            loadAdmins(); loadStats();
+        } else showToast(data.error || 'Failed', 'error');
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+async function toggleAdmin(id, active) {
+    try {
+        await fetch(API + `/api/admin-accounts/${id}/toggle`, {method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({isActive: active})});
+        showToast('Admin status updated');
+        loadAdmins();
+    } catch(e) { showToast('Failed', 'error'); }
+}
+
+async function deleteAdmin(id) {
+    if (!confirm('Delete this admin permanently?')) return;
+    try {
+        await fetch(API + `/api/admin-accounts/${id}`, {method: 'DELETE'});
+        showToast('Admin deleted');
+        loadAdmins(); loadStats();
+    } catch(e) { showToast('Failed', 'error'); }
+}
+
+// --- Copy ---
+function copyText(elId) {
+    const text = document.getElementById(elId).textContent;
+    navigator.clipboard.writeText(text).then(() => showToast('Copied!')).catch(() => {
+        const ta = document.createElement('textarea'); ta.value = text;
+        document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+        document.body.removeChild(ta); showToast('Copied!');
+    });
+}
+</script>
 </body>
 </html>

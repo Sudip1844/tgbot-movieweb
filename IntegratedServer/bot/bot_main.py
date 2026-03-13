@@ -87,6 +87,138 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
     logger.error(f"Exception while handling an update: {context.error}")
 
 
+# --- NEW: Review & Edit Commands (per INTEGRATION_PLAN.md) ---
+
+async def review_pending_movies(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Owner reviews pending movies submitted from website. /review command."""
+    from bot.config import OWNER_ID
+    if update.effective_user.id != OWNER_ID:
+        await update.message.reply_text("This command is only for the owner.")
+        return
+
+    pending = db.get_pending_movies()
+    if not pending:
+        await update.message.reply_text("No pending movies to review!")
+        return
+
+    await update.message.reply_text(f"Pending movies for review: {len(pending)}\n")
+
+    from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+    for movie in pending[:10]:  # Show max 10 at a time
+        title = movie.get('title', 'Unknown')
+        mid = movie.get('movie_id')
+        cats = ', '.join(movie.get('categories', []))
+        langs = ', '.join(movie.get('languages', []))
+
+        text = (f"Title: {title}\n"
+                f"Categories: {cats or 'N/A'}\n"
+                f"Languages: {langs or 'N/A'}\n"
+                f"Type: {movie.get('download_type', 'single')}")
+
+        buttons = InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("Approve", callback_data=f"review_approve_{mid}"),
+                InlineKeyboardButton("Reject", callback_data=f"review_reject_{mid}")
+            ]
+        ])
+
+        thumbnail = movie.get('thumbnail_file_id')
+        if thumbnail:
+            try:
+                await update.message.reply_photo(photo=thumbnail, caption=text, reply_markup=buttons)
+                continue
+            except Exception:
+                pass
+        await update.message.reply_text(text, reply_markup=buttons)
+
+
+async def handle_review_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle approve/reject callback from review."""
+    query = update.callback_query
+    await query.answer()
+
+    from bot.config import OWNER_ID
+    if query.from_user.id != OWNER_ID:
+        return
+
+    data = query.data  # review_approve_123 or review_reject_123
+    parts = data.split('_')
+    action = parts[1]  # approve or reject
+    movie_id = int(parts[2])
+
+    if action == 'approve':
+        success = db.approve_movie(movie_id)
+        if success:
+            movie = db.get_movie_details(movie_id)
+            title = movie.get('title', 'Unknown') if movie else 'Unknown'
+            await query.edit_message_text(f"APPROVED: {title}\n\nMovie is now live!")
+
+            # Auto-post to channel
+            from bot.config import CHANNEL_USERNAME
+            if CHANNEL_USERNAME and movie:
+                try:
+                    from bot.utils import format_movie_post
+                    post_text = format_movie_post(movie, CHANNEL_USERNAME)
+                    thumbnail = movie.get('thumbnail_file_id')
+                    if thumbnail:
+                        await context.bot.send_photo(
+                            chat_id=f"@{CHANNEL_USERNAME}",
+                            photo=thumbnail,
+                            caption=post_text,
+                            parse_mode='HTML'
+                        )
+                    else:
+                        await context.bot.send_message(
+                            chat_id=f"@{CHANNEL_USERNAME}",
+                            text=post_text,
+                            parse_mode='HTML'
+                        )
+                    logger.info(f"Movie posted to channel: {title}")
+                except Exception as e:
+                    logger.error(f"Failed to post to channel: {e}")
+        else:
+            await query.edit_message_text("Failed to approve movie.")
+
+    elif action == 'reject':
+        success = db.reject_movie(movie_id)
+        if success:
+            await query.edit_message_text("Movie rejected.")
+        else:
+            await query.edit_message_text("Failed to reject movie.")
+
+
+async def edit_movie_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Owner edits a movie (e.g., update thumbnail). /edit <movie_id> command."""
+    from bot.config import OWNER_ID
+    if update.effective_user.id != OWNER_ID:
+        await update.message.reply_text("This command is only for the owner.")
+        return
+
+    args = context.args
+    if not args:
+        await update.message.reply_text(
+            "Usage: /edit <movie_id>\n\n"
+            "Then send a new thumbnail photo in the next message."
+        )
+        return
+
+    try:
+        movie_id = int(args[0])
+        movie = db.get_movie_details(movie_id)
+        if not movie:
+            await update.message.reply_text(f"Movie ID {movie_id} not found.")
+            return
+
+        context.user_data['editing_movie_id'] = movie_id
+        await update.message.reply_text(
+            f"Editing: {movie.get('title', 'Unknown')}\n\n"
+            f"Send a new thumbnail photo to update it.\n"
+            f"Send /cancel to cancel."
+        )
+    except ValueError:
+        await update.message.reply_text("Invalid movie ID. Use: /edit <number>")
+
+
 def build_application():
     """Build the bot Application with all handlers registered"""
     if not BOT_TOKEN:
@@ -107,45 +239,56 @@ def build_application():
         request_movie_conv, remove_movie_conv, show_stats_conv,
         search_movies, handle_search_query, browse_categories
     )
-    from bot.handlers.conversation_handlers import add_movie_conv_handler
     from bot.handlers.callback_handler import callback_query_handler
     from bot.handlers.owner_handlers import owner_handlers
+    from bot.handlers.monthly_handler import monthly_handlers
 
-    # Register conversation handlers first (they take priority)
-    application.add_handler(add_movie_conv_handler)
+    # --- Handler Registration (matching original Tgbot order) ---
+
+    # 1. Owner-specific handlers (highest priority)
+    for handler in owner_handlers:
+        application.add_handler(handler)
+
+    # 1.1. Monthly report handlers (owner only)
+    for handler in monthly_handlers:
+        application.add_handler(handler)
+
+    # 2. Movie request/remove/stats conversation handlers
+    # NOTE: add_movie_conv_handler REMOVED - movies are now added via website
     application.add_handler(request_movie_conv)
     application.add_handler(remove_movie_conv)
     application.add_handler(show_stats_conv)
 
-    # Register owner handlers
-    for handler in owner_handlers:
-        application.add_handler(handler)
+    # 3. Review & Edit commands (NEW - owner reviews pending movies from website)
+    from telegram.ext import CallbackQueryHandler
+    application.add_handler(CommandHandler("review", review_pending_movies))
+    application.add_handler(CommandHandler("edit", edit_movie_command))
+    application.add_handler(CallbackQueryHandler(handle_review_callback, pattern="^review_"))
 
-    # Register start/help handlers
+    # 4. Regular command and message handlers from start_handler
     for handler in start_handlers:
         application.add_handler(handler)
 
-    # Register search handler
-    application.add_handler(MessageHandler(filters.Regex("^🔍 Search Movies$"), search_movies))
-    application.add_handler(MessageHandler(filters.Regex("^📂 Browse Categories$"), browse_categories))
-
-    # Register callback handler (catches all callback queries)
+    # 5. Callback Query Handler for all inline buttons
     application.add_handler(callback_query_handler)
 
-    # Register search text handler (for when user types search query)
-    application.add_handler(MessageHandler(
-        filters.TEXT & ~filters.COMMAND & ~filters.Regex("^(➕|🗑️|📊|👥|📢|❓|❌|🔍|📂|🙏)"),
-        handle_search_query
-    ))
-
-    # Channel member handler
+    # 6. Welcome message for new channel members
     application.add_handler(ChatMemberHandler(welcome_new_member, ChatMemberHandler.CHAT_MEMBER))
 
-    # Global cancel
+    # 7. Global cancel command handler
     application.add_handler(CommandHandler("cancel", global_cancel_handler))
 
-    # Error handler
+    # 8. Error handler
     application.add_error_handler(error_handler)
+
+    # Disable hamburger menu globally
+    async def post_init(app):
+        from telegram import BotCommandScopeDefault, BotCommandScopeAllPrivateChats
+        await app.bot.set_my_commands([], scope=BotCommandScopeDefault())
+        await app.bot.set_my_commands([], scope=BotCommandScopeAllPrivateChats())
+        logger.info("Hamburger menu disabled - using reply keyboard only")
+
+    application.post_init = post_init
 
     logger.info(f"[BOT] Application built with all handlers")
     return application
