@@ -8,7 +8,7 @@ from telegram import (
     Update
 )
 from bot.config import CATEGORIES, BOT_USERNAME, SINGLE_MOVIE_POST_TEMPLATE, SERIES_POST_TEMPLATE
-import bot.database as db
+import bot.db as db
 import logging
 from typing import List
 

@@ -4,19 +4,28 @@
 
 import os
 import sys
+import io
 import logging
 import threading
 from pathlib import Path
 from dotenv import load_dotenv
 
+# Fix Windows encoding issues
+os.environ['PYTHONIOENCODING'] = 'utf-8'
+if sys.platform == 'win32':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+
 # Load environment variables FIRST
 load_dotenv(Path(__file__).parent / '.env')
 
-# Configure logging
+# Configure logging with UTF-8 handler
+log_handler = logging.StreamHandler(sys.stdout)
+log_handler.setLevel(logging.INFO)
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[logging.StreamHandler(sys.stdout)]
+    handlers=[log_handler]
 )
 logger = logging.getLogger(__name__)
 
@@ -33,11 +42,11 @@ def run_flask():
     host = os.getenv('FLASK_HOST', '0.0.0.0')
     port = int(os.getenv('FLASK_PORT', 5000))
 
-    logger.info(f"🌐 Flask server on http://localhost:{port}")
-    logger.info(f"   📄 Home: http://localhost:{port}")
-    logger.info(f"   👑 Owner: http://localhost:{port}/sudip")
-    logger.info(f"   🔧 Admin: http://localhost:{port}/admin")
-    logger.info(f"   📡 API: http://localhost:{port}/api/health")
+    logger.info(f"[WEB] Flask server on http://localhost:{port}")
+    logger.info(f"  Home: http://localhost:{port}")
+    logger.info(f"  Owner: http://localhost:{port}/sudip")
+    logger.info(f"  Admin: http://localhost:{port}/admin")
+    logger.info(f"  API: http://localhost:{port}/api/health")
 
     app.run(host=host, port=port, debug=False, use_reloader=False)
 
@@ -45,18 +54,18 @@ def run_flask():
 def run_bot():
     """Run Telegram bot in a separate thread"""
     from bot.bot_main import run_bot_in_thread
-    logger.info("🤖 Starting Telegram bot in background...")
+    logger.info("[BOT] Starting Telegram bot in background...")
     try:
         run_bot_in_thread()
     except Exception as e:
-        logger.error(f"❌ Bot error: {e}")
+        logger.error(f"[BOT] Error: {e}")
 
 
 def main():
     print()
     print("=" * 50)
-    print("  🎬 MovieZone Integrated Server")
-    print("  📡 Flask API + Telegram Bot")
+    print("  MovieZone Integrated Server")
+    print("  Flask API + Telegram Bot")
     print("=" * 50)
     print()
 
@@ -68,9 +77,9 @@ def main():
     try:
         run_flask()
     except KeyboardInterrupt:
-        logger.info("🛑 Server shutting down...")
+        logger.info("Server shutting down...")
     except Exception as e:
-        logger.error(f"❌ Flask error: {e}")
+        logger.error(f"Flask error: {e}")
 
 
 if __name__ == '__main__':

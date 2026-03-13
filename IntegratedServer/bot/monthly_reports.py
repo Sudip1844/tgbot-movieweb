@@ -6,7 +6,7 @@ import time
 import logging
 from datetime import datetime
 from telegram import Bot
-import bot.database as db
+import bot.db as db
 from bot.config import BOT_TOKEN, OWNER_ID
 
 # Setup logging

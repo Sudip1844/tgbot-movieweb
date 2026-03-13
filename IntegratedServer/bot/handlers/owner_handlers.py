@@ -12,7 +12,7 @@ from telegram.ext import (
 )
 from telegram.constants import ParseMode
 
-import bot.database as db
+import bot.db as db
 from bot.utils import restricted
 from bot.config import OWNER_ID
 

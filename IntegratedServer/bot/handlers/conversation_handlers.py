@@ -13,7 +13,7 @@ from telegram.ext import (
 from telegram.constants import ParseMode
 from typing import Optional
 
-import bot.database as db
+import bot.db as db
 from bot.utils import restricted, format_movie_post
 from bot.config import CATEGORIES, LANGUAGES, CONVERSATION_TIMEOUT, OWNER_ID
 
@@ -105,7 +105,7 @@ async def add_movie_start(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     """ /addmovie কমান্ড দিয়ে কথোপকথন শুরু করে। """
     from bot.utils import set_conversation_keyboard
     from utils_cleanup import auto_cleanup_message
-    import bot.database as db
+    import bot.db as db
 
     user_role = db.get_user_role(update.effective_user.id)
 
@@ -143,7 +143,7 @@ async def get_thumbnail(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
 
 async def get_title(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """ টাইটেল সংগ্রহ করে। """
-    import bot.database as db
+    import bot.db as db
     
     title = update.message.text
 
@@ -540,7 +540,7 @@ async def select_channels(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
         # Restore main keyboard after successful movie addition
         from bot.utils import restore_main_keyboard
-        import bot.database as db
+        import bot.db as db
         
         user_role = db.get_user_role(query.from_user.id)
         keyboard = await restore_main_keyboard(query, context, user_role)
@@ -553,7 +553,7 @@ async def select_channels(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     elif query.data == "cancel_post":
         # Restore main keyboard after cancellation
         from bot.utils import restore_main_keyboard
-        import bot.database as db
+        import bot.db as db
         
         user_role = db.get_user_role(query.from_user.id)
         keyboard = await restore_main_keyboard(query, context, user_role)
@@ -593,7 +593,7 @@ async def select_channels(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 async def cancel_conversation(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """কথোপকথন বাতিল করে।"""
     from bot.utils import restore_main_keyboard
-    import bot.database as db
+    import bot.db as db
 
     user_role = db.get_user_role(update.effective_user.id)
     keyboard = await restore_main_keyboard(update, context, user_role)

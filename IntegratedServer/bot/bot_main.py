@@ -15,7 +15,7 @@ from telegram import Update, ChatMember, ChatMemberUpdated
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ChatMemberHandler, ContextTypes
 
 from bot.config import BOT_TOKEN, BOT_USERNAME, OWNER_ID, CONVERSATION_TIMEOUT
-import bot.database as db
+import bot.db as db
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +66,7 @@ async def welcome_new_member(update: Update, context: ContextTypes.DEFAULT_TYPE)
     if not was_member and is_member:
         new_user = update.chat_member.new_chat_member.user
         await update.effective_chat.send_message(
-            f"Welcome {new_user.mention_html()} to our channel & bot! 🎬\n\n"
+            f"Welcome {new_user.mention_html()} to our channel and bot!\n\n"
             f"Use @{BOT_USERNAME} to search and download movies!",
             parse_mode='HTML'
         )
@@ -78,7 +78,7 @@ async def global_cancel_handler(update: Update, context: ContextTypes.DEFAULT_TY
     user_role = db.get_user_role(update.effective_user.id)
     from bot.utils import get_main_keyboard
     keyboard = get_main_keyboard(user_role)
-    await update.message.reply_text("❌ Operation cancelled.", reply_markup=keyboard)
+    await update.message.reply_text("Operation cancelled.", reply_markup=keyboard)
 
 
 # --- Error Handler ---
@@ -90,10 +90,10 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
 def build_application():
     """Build the bot Application with all handlers registered"""
     if not BOT_TOKEN:
-        logger.error("❌ BOT_TOKEN not configured!")
+        logger.error("[BOT] BOT_TOKEN not configured!")
         return None
 
-    logger.info(f"🤖 Building Telegram Bot: @{BOT_USERNAME}")
+    logger.info(f"[BOT] Building Telegram Bot: @{BOT_USERNAME}")
 
     # Initialize database
     db.initialize_database()
@@ -147,7 +147,7 @@ def build_application():
     # Error handler
     application.add_error_handler(error_handler)
 
-    logger.info(f"✅ Bot application built with all handlers")
+    logger.info(f"[BOT] Application built with all handlers")
     return application
 
 
@@ -155,7 +155,7 @@ def run_bot_in_thread():
     """Run bot in a separate thread with its own event loop"""
     application = build_application()
     if not application:
-        logger.error("❌ Failed to build bot application")
+        logger.error("[BOT] Failed to build bot application")
         return
 
     loop = asyncio.new_event_loop()
@@ -170,13 +170,13 @@ def run_bot_in_thread():
         try:
             await application.bot.send_message(
                 chat_id=OWNER_ID,
-                text="🤖 MovieZone Bot started successfully!\n\n"
-                     "📡 Integrated Server Mode"
+                text="MovieZone Bot started successfully!\n\n"
+                     "Integrated Server Mode"
             )
         except Exception as e:
             logger.warning(f"Could not notify owner: {e}")
 
-        logger.info(f"🚀 Bot @{BOT_USERNAME} is polling...")
+        logger.info(f"[BOT] @{BOT_USERNAME} is polling...")
 
         # Start polling (this runs until stopped)
         await application.updater.start_polling(drop_pending_updates=True)

@@ -6,7 +6,7 @@ from telegram.ext import ContextTypes, CallbackQueryHandler
 from telegram.constants import ParseMode
 from telegram.error import BadRequest
 
-import bot.database as db
+import bot.db as db
 from bot.utils import generate_direct_download_button, get_quality_buttons
 
 # লগিং সেটআপ

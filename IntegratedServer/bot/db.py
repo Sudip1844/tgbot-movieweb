@@ -23,9 +23,9 @@ def initialize_database():
     logger.info("Initializing Supabase database connection...")
     connected = supabase.test_connection()
     if connected:
-        logger.info("✅ Database initialized (Supabase)")
+        logger.info("[DB] Database initialized (Supabase)")
     else:
-        logger.warning("⚠️ Supabase connection test failed - some features may not work")
+        logger.warning("[DB] Supabase connection test failed - some features may not work")
 
 
 # --- User Management Functions ---

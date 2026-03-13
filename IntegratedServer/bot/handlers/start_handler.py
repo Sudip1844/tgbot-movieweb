@@ -5,7 +5,7 @@ from telegram import Update
 from telegram.ext import ContextTypes, CommandHandler, MessageHandler, filters
 from telegram.constants import ParseMode
 
-import bot.database as db
+import bot.db as db
 from bot.utils import get_main_keyboard
 from bot.config import BOT_USERNAME
 

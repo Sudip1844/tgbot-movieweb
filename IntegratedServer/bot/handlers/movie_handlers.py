@@ -5,7 +5,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, CommandHandler, MessageHandler, filters, ConversationHandler, CallbackQueryHandler
 from telegram.constants import ParseMode
 
-import bot.database as db
+import bot.db as db
 from bot.utils import get_category_keyboard, get_movie_search_results_markup, restricted, create_category_keyboard, create_movie_grid_markup
 from bot.config import CATEGORIES
 
