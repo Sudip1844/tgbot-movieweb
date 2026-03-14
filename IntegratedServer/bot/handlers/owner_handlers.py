@@ -593,7 +593,8 @@ owner_handlers = [
     remove_admin_conv,
     add_channel_conv,
     remove_channel_conv,
-    MessageHandler(filters.Regex("^👥 Manage Admins$"), manage_admins),
+    # NOTE: "Manage Admins" button removed from keyboard - admins managed via website
+    # "Review Movies" button handler is registered in bot_main.py directly
     MessageHandler(filters.Regex("^📢 Manage Channels$"), manage_channels),
     CallbackQueryHandler(handle_channel_management, pattern="^channel_remove$")
 ]

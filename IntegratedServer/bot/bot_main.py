@@ -265,6 +265,18 @@ def build_application():
     application.add_handler(CommandHandler("edit", edit_movie_command))
     application.add_handler(CallbackQueryHandler(handle_review_callback, pattern="^review_"))
 
+    # 3.1 Text button handlers for new keyboard buttons
+    application.add_handler(MessageHandler(filters.Regex("^📋 Review Movies$"), review_pending_movies))
+
+    # 3.2 Monthly Report text button handler
+    from bot.handlers.monthly_handler import monthly_handlers
+    # monthly_handlers are already registered above, but we need the text button too
+    async def monthly_report_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle '📊 Monthly Report' keyboard button."""
+        from bot.handlers.monthly_handler import monthly_report_start
+        await monthly_report_start(update, context)
+    application.add_handler(MessageHandler(filters.Regex("^📊 Monthly Report$"), monthly_report_button))
+
     # 4. Regular command and message handlers from start_handler
     for handler in start_handlers:
         application.add_handler(handler)

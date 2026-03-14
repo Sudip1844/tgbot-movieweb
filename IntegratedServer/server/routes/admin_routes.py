@@ -34,17 +34,20 @@ def admin_login():
 
         # Check admin accounts table
         rows = supabase.select('admin_accounts', '*', {
-            'admin_id': login_id,
-            'is_active': True
+            'admin_id': login_id
         })
-        if rows and rows[0].get('admin_password') == password:
-            return jsonify({
-                'success': True,
-                'role': 'admin',
-                'adminId': login_id,
-                'displayName': rows[0].get('display_name', ''),
-                'message': 'Admin login successful'
-            })
+        if rows:
+            admin = rows[0]
+            if not admin.get('is_active', False):
+                return jsonify({'error': 'Account is disabled'}), 401
+            if admin.get('admin_password') == password:
+                return jsonify({
+                    'success': True,
+                    'role': 'admin',
+                    'adminId': login_id,
+                    'displayName': admin.get('display_name', ''),
+                    'message': 'Admin login successful'
+                })
 
         return jsonify({'error': 'Invalid credentials'}), 401
     except Exception as e:
@@ -99,11 +102,29 @@ def create_admin_account():
         return jsonify({'error': str(e)}), 500
 
 
-@admin_bp.route('/api/admin-accounts/<int:account_id>', methods=['DELETE'])
-def delete_admin_account(account_id):
-    """Delete an admin account"""
+@admin_bp.route('/api/admin-accounts/<int:account_id>', methods=['DELETE', 'PATCH'])
+def manage_admin_account(account_id):
+    """Delete or update an admin account"""
+    if request.method == 'DELETE':
+        try:
+            supabase.delete('admin_accounts', {'id': account_id})
+            return jsonify({'success': True})
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+    # PATCH - update admin details
     try:
-        supabase.delete('admin_accounts', {'id': account_id})
+        data = request.get_json()
+        update_data = {}
+        if 'adminId' in data and data['adminId']:
+            update_data['admin_id'] = data['adminId']
+        if 'displayName' in data:
+            update_data['display_name'] = data['displayName']
+        if 'adminPassword' in data and data['adminPassword']:
+            update_data['admin_password'] = data['adminPassword']
+        if not update_data:
+            return jsonify({'error': 'No fields to update'}), 400
+        supabase.update('admin_accounts', update_data, {'id': account_id})
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'error': str(e)}), 500

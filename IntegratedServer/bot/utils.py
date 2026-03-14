@@ -47,17 +47,17 @@ def get_main_keyboard(user_role: str) -> ReplyKeyboardMarkup:
     """Create role-based main menu keyboard for users with cancel button always available."""
     
     if user_role == 'owner':
-        # Owner gets all commands plus cancel
+        # Owner: Review movies (added via website), manage channels, stats
         keyboard = [
-            [KeyboardButton("➕ Add Movie"), KeyboardButton("🗑️ Remove Movie")],
+            [KeyboardButton("📋 Review Movies"), KeyboardButton("🗑️ Remove Movie")],
             [KeyboardButton("📊 Show Requests"), KeyboardButton("📊 Show Stats")],
-            [KeyboardButton("👥 Manage Admins"), KeyboardButton("📢 Manage Channels")],
+            [KeyboardButton("📊 Monthly Report"), KeyboardButton("📢 Manage Channels")],
             [KeyboardButton("❓ Help"), KeyboardButton("❌ Cancel")]
         ]
     elif user_role == 'admin':
-        # Admin gets movie management commands plus cancel (No Remove Movie for admins)
+        # Admin: Review movies, stats (movies added via website, admins managed via website)
         keyboard = [
-            [KeyboardButton("➕ Add Movie"), KeyboardButton("📊 Show Requests")],
+            [KeyboardButton("📋 Review Movies"), KeyboardButton("📊 Show Requests")],
             [KeyboardButton("📊 Show Stats"), KeyboardButton("❓ Help")],
             [KeyboardButton("❌ Cancel")]
         ]
@@ -75,17 +75,17 @@ def get_conversation_keyboard(user_role: str) -> ReplyKeyboardMarkup:
     """Create keyboard with cancel button during conversations, alongside main buttons."""
     
     if user_role == 'owner':
-        # Owner gets all commands plus cancel
+        # Owner: Review movies (added via website), manage channels, stats
         keyboard = [
-            [KeyboardButton("➕ Add Movie"), KeyboardButton("🗑️ Remove Movie")],
+            [KeyboardButton("📋 Review Movies"), KeyboardButton("🗑️ Remove Movie")],
             [KeyboardButton("📊 Show Requests"), KeyboardButton("📊 Show Stats")],
-            [KeyboardButton("👥 Manage Admins"), KeyboardButton("📢 Manage Channels")],
+            [KeyboardButton("📊 Monthly Report"), KeyboardButton("📢 Manage Channels")],
             [KeyboardButton("❓ Help"), KeyboardButton("❌ Cancel")]
         ]
     elif user_role == 'admin':
-        # Admin gets movie management commands plus cancel (No Remove Movie for admins)
+        # Admin: Review movies, stats (movies added via website, admins managed via website)
         keyboard = [
-            [KeyboardButton("➕ Add Movie"), KeyboardButton("📊 Show Requests")],
+            [KeyboardButton("📋 Review Movies"), KeyboardButton("📊 Show Requests")],
             [KeyboardButton("📊 Show Stats"), KeyboardButton("❓ Help")],
             [KeyboardButton("❌ Cancel")]
         ]
